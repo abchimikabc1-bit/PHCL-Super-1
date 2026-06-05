@@ -15,7 +15,7 @@
 │  │ 🎨 Purple gradient background                   │  │
 │  │ 🔄 Animated circles (pulse)                     │  │
 │  │                                                  │  │
-│  │      π (PHCL Logo - bouncing)                  │  │
+│  │      π (PiHCL Logo - bouncing)                  │  │
 │  │                                                  │  │
 │  │      WELCOME                                    │  │
 │  │      PiHCL (gradient: yellow→white→purple)       │  │
