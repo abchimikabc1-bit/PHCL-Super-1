@@ -61,7 +61,7 @@ App now opens with a beautiful welcome splash screen featuring PiHCL logo and "W
 
 1. User visits app (/)
 2. Automatically redirected to splash screen
-3. Sees PHCL logo bouncing
+3. Sees PiHCL logo bouncing
 4. Sees large "WELCOME PiHCL" text fade in
 5. Can click "Enter App" button immediately
 6. Automatically redirected to welcome page after 5 seconds
