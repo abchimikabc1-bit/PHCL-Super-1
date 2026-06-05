@@ -59,7 +59,7 @@ The PiHCL application has been fully restored to its original design and functio
 
 ## 🎨 Design & UX
 
-- **Purple Theme** - PHCL primary color throughout
+- **Purple Theme** - PiHCL primary color throughout
 - **Responsive Design** - Mobile-first approach for all pages
 - **Bilingual Support** - English and Swahili language switching
 - **Smooth Animations** - Page transitions and loading states
