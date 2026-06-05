@@ -113,4 +113,4 @@ The following unnecessary files were removed:
 
 **App Status:** ✅ Ready for development and testing
 
-PiHCL app is now restored to its original state with AI chatbot as entry point, full marketplace functionality, and comprehensive transaction capabilities.
+PiHCL app is now restored to its original state with AI chatbot as entry point,full marketplace functionality, and comprehensive transaction capabilities.
