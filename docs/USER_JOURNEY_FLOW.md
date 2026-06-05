@@ -1,4 +1,4 @@
-# PHCL App User Journey
+# PiHCL App User Journey
 
 ## Complete User Flow
 
@@ -18,7 +18,7 @@
 │  │      π (PHCL Logo - bouncing)                  │  │
 │  │                                                  │  │
 │  │      WELCOME                                    │  │
-│  │      PHCL (gradient: yellow→white→purple)       │  │
+│  │      PiHCL (gradient: yellow→white→purple)       │  │
 │  │      Trade Crypto with Confidence              │  │
 │  │                                                  │  │
 │  │      [Enter App Button] (appears after 3s)      │  │
@@ -31,7 +31,7 @@
 ┌─────────────────────────────────────────────────────────┐
 │             WELCOME PAGE (/welcome)                     │
 │  ┌──────────────────────────────────────────────────┐  │
-│  │ Header: PHCL Logo + Navigation                  │  │
+│  │ Header: PiHCL Logo + Navigation                  │  │
 │  │                                                  │  │
 │  │ Hero Section:                                   │  │
 │  │ - Welcome message                              │  │
