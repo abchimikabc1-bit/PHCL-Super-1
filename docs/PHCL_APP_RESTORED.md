@@ -1,14 +1,14 @@
-# PHCL App - Complete Restoration
+# PiHCL App - Complete Restoration
 
 ## ✅ Kazi Zarudiwa - Original Features Restored
 
-The PHCL application has been fully restored to its original design and functionality. The app now contains all the core features that were built initially.
+The PiHCL application has been fully restored to its original design and functionality. The app now contains all the core features that were built initially.
 
 ## 📱 Application Structure
 
 ### Entry Point: AI Chatbot (/)
 - **Multilingual AI Assistant** - Responds in 10+ languages
-- **PHCL Branding** - Logo and purple theme throughout
+- **PiHCL Branding** - Logo and purple theme throughout
 - **Quick Actions** - Suggested buttons for common queries
 - **Real-time Responses** - AI responds to user queries about marketplace, wallet, trading
 
@@ -75,7 +75,7 @@ The following unnecessary files were removed:
 
 ## ✨ What's Working
 
-✅ AI Chatbot entry point with PHCL logo  
+✅ AI Chatbot entry point with PiHCL logo  
 ✅ Marketplace with products (vehicles, appliances, tractors)  
 ✅ Wallet dashboard with asset overview  
 ✅ Transfer/Send transactions  
@@ -107,10 +107,10 @@ The following unnecessary files were removed:
 - `/app/withdraw/page.tsx` - Withdraw crypto
 - `/app/transactions/page.tsx` - Transaction history
 - `/components/header.tsx` - Navigation header
-- `/lib/phcl-config.ts` - PHCL configuration
+- `/lib/phcl-config.ts` - PiHCL configuration
 
 ---
 
 **App Status:** ✅ Ready for development and testing
 
-PHCL app is now restored to its original state with AI chatbot as entry point, full marketplace functionality, and comprehensive transaction capabilities.
+PiHCL app is now restored to its original state with AI chatbot as entry point, full marketplace functionality, and comprehensive transaction capabilities.
