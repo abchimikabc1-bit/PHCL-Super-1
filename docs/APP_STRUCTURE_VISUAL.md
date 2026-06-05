@@ -114,7 +114,7 @@ KEY FEATURES
 
 ### Customization:
 - Update company info in `/lib/phcl-config.ts`
-- Change colors in PHCL_COLORS
+- Change colors in PiHCL_COLORS
 - Modify welcome page text for different messaging
 - Add real logos to `/public` folder
 
