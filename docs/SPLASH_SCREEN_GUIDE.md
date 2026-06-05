@@ -1,4 +1,4 @@
-# PHCL Splash Screen Implementation
+# PiHCL Splash Screen Implementation
 
 ## Overview
 Created a beautiful splash/intro screen that displays when the app first opens.
@@ -7,8 +7,8 @@ Created a beautiful splash/intro screen that displays when the app first opens.
 
 ### 1. `/app/splash/page.tsx`
 Beautiful splash screen with:
-- **Large PHCL Logo** - Purple π (pi) symbol, animated with bounce effect
-- **"WELCOME PHCL" Text** - Large heading with gradient (purple to white)
+- **Large PiHCL Logo** - Purple π (pi) symbol, animated with bounce effect
+- **"WELCOME PiHCL" Text** - Large heading with gradient (purple to white)
 - **Animated Background** - Blurred circles with purple/indigo colors pulsing
 - **Bilingual Support** - English and Swahili text
 - **Auto-Redirect** - Automatically goes to `/welcome` after 3 seconds
@@ -34,7 +34,7 @@ Beautiful splash screen with:
 
 ### Bilingual
 - "WELCOME" or "KARIBU" (Swahili)
-- "PHCL" (company name)
+- "PiHCL" (company name)
 - "Crypto Trading Platform" or "Jukwaa la Biashara ya Sarafu"
 - "Powered by Pi Network" or "Inayoendarishwa na Pi Network"
 - Auto-redirect message or "Kurudi" (returning)
