@@ -1,9 +1,9 @@
-# PHCL Welcome & Landing Page - Implementation Summary
+# PiHCL Welcome & Landing Page - Implementation Summary
 
 ## Nini Tumetenda - What We've Built
 
 ### 1. Beautiful Welcome Page (`/app/welcome/page.tsx`)
-- **Hero Section**: PHCL logo prominently displayed with purple gradient branding
+- **Hero Section**: PiHCL logo prominently displayed with purple gradient branding
 - **Key Features**:
   - Welcome message in English & Swahili (bilingual)
   - Stats display (50K+ users, 24/7 support, $100M+ traded)
