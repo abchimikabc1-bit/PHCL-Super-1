@@ -1,83 +1,160 @@
-import { getAdminCurrencyConfig } from '@/lib/admin-currency-rates';
+// --- TYPES OF CURRENCIES & PAYMENT METHODS ---
 
-export const PI_GCV_USD = 314159;
-export const USD_TO_TZS = 2621.5;
-export const USD_TO_NTZS = 2621.5;
+export type CurrencyCode = 'USD' | 'TZS' | 'nTZS' | 'PI';
 
-const getManagedRate = (code: string, fallback: number): number => {
-  if (typeof window === 'undefined') return fallback;
+export interface CurrencyConfig {
+  code: CurrencyCode;
+  name: string;
+  symbol: string;
+  rateToUSD: number; // Thamani ya USD 1 kwa sarafu husika
+  decimals: number;
+}
 
-  try {
-    const config = getAdminCurrencyConfig();
-    const managed = config.managed.find((entry) => entry.code === code);
-    if (!managed || !managed.enabled) return fallback;
-    if (!Number.isFinite(managed.rateToUsd) || managed.rateToUsd <= 0) return fallback;
-    return managed.rateToUsd;
-  } catch {
-    return fallback;
-  }
+export type PaymentCategory = 'BANK' | 'CARD' | 'MOBILE_MONEY' | 'CRYPTO';
+
+export interface PaymentMethod {
+  id: string;
+  name: string;
+  category: PaymentCategory;
+  provider: 'BENK' | 'VISA' | 'AIRTELMONEY' | 'YAS' | 'MPESA' | 'HALOPESA' | 'PI_NETWORK';
+  iconName: string;
+  accountDetailsHint: string;
+  supportedCurrencies: CurrencyCode[];
+}
+
+// --- CURRENCY CONFIGURATIONS & RATES ---
+
+export const CURRENCIES: Record<CurrencyCode, CurrencyConfig> = {
+  USD: {
+    code: 'USD',
+    name: 'US Dollar',
+    symbol: '$',
+    rateToUSD: 1.0,
+    decimals: 2,
+  },
+  TZS: {
+    code: 'TZS',
+    name: 'Shilingi ya Tanzania',
+    symbol: 'TSh',
+    rateToUSD: 2700, // Exchange rate ya mfano: 1 USD = 2700 TZS
+    decimals: 0,
+  },
+  nTZS: {
+    code: 'nTZS',
+    name: 'New TZS (Digital)',
+    symbol: 'nTSh',
+    rateToUSD: 2700,
+    decimals: 2,
+  },
+  PI: {
+    code: 'PI',
+    name: 'Pi Network Token',
+    symbol: 'π',
+    rateToUSD: 0.032, // 1 PI = ~0.032 USD (inaweza kubadilika dynamic)
+    decimals: 4,
+  },
 };
 
-const getUsdBasePrice = (product: any): number => {
-  if (typeof product?.usd === 'number') return product.usd;
-  if (typeof product?.priceUSD === 'number') return product.priceUSD;
-  return 0;
-};
+// --- PAYMENT METHODS CONFIGURATION ---
 
-export const convertAmount = (amount: number, fromCurrency: string, toCurrency: string): number => {
-  const usdToTzs = getManagedRate('TZS', USD_TO_TZS);
-  // nTZS is pegged 1:1 with TZS for all platform math.
-  const usdToNTzs = usdToTzs;
-  const piGcvUsd = getManagedRate('PI', PI_GCV_USD);
+export const PAYMENT_METHODS: PaymentMethod[] = [
+  {
+    id: 'pay-bank',
+    name: 'Kutuma Benki (Bank Transfer)',
+    category: 'BANK',
+    provider: 'BENK',
+    iconName: 'BuildingLibraryIcon',
+    accountDetailsHint: 'Weka Namba ya Akaunti ya Benki',
+    supportedCurrencies: ['TZS', 'USD', 'nTZS'],
+  },
+  {
+    id: 'pay-visa',
+    name: 'Visa / Mastercard',
+    category: 'CARD',
+    provider: 'VISA',
+    iconName: 'CreditCardIcon',
+    accountDetailsHint: 'Weka Namba ya Kadi (16 digits)',
+    supportedCurrencies: ['USD', 'TZS', 'nTZS'],
+  },
+  {
+    id: 'pay-mpesa',
+    name: 'M-Pesa (Vodacom)',
+    category: 'MOBILE_MONEY',
+    provider: 'MPESA',
+    iconName: 'PhoneIcon',
+    accountDetailsHint: 'Namba ya Simu (Mfano: 0754xxxxxx)',
+    supportedCurrencies: ['TZS', 'nTZS'],
+  },
+  {
+    id: 'pay-yas',
+    name: 'YAS / Tigo Pesa (MixbyYAS)',
+    category: 'MOBILE_MONEY',
+    provider: 'YAS',
+    iconName: 'PhoneIcon',
+    accountDetailsHint: 'Namba ya Simu (Mfano: 0713xxxxxx)',
+    supportedCurrencies: ['TZS', 'nTZS'],
+  },
+  {
+    id: 'pay-airtel',
+    name: 'Airtel Money',
+    category: 'MOBILE_MONEY',
+    provider: 'AIRTELMONEY',
+    iconName: 'PhoneIcon',
+    accountDetailsHint: 'Namba ya Simu (Mfano: 0784xxxxxx)',
+    supportedCurrencies: ['TZS', 'nTZS'],
+  },
+  {
+    id: 'pay-halopesa',
+    name: 'HaloPesa (Halotel)',
+    category: 'MOBILE_MONEY',
+    provider: 'HALOPESA',
+    iconName: 'PhoneIcon',
+    accountDetailsHint: 'Namba ya Simu (Mfano: 0620xxxxxx)',
+    supportedCurrencies: ['TZS', 'nTZS'],
+  },
+  {
+    id: 'pay-pi',
+    name: 'Pi Network Wallet',
+    category: 'CRYPTO',
+    provider: 'PI_NETWORK',
+    iconName: 'CurrencyDollarIcon',
+    accountDetailsHint: 'Weka Anwani ya Pi Wallet (Public Key)',
+    supportedCurrencies: ['PI'],
+  },
+];
 
-  const from = (fromCurrency || '').toLowerCase();
-  const to = (toCurrency || '').toLowerCase();
+// --- HELPER FUNCTIONS FOR CONVERSION & FORMATTING ---
 
+/**
+ * Inabadilisha kiasi kutoka sarafu moja kwenda nyingine
+ */
+export function convertCurrency(
+  amount: number,
+  from: CurrencyCode,
+  to: CurrencyCode
+): number {
   if (from === to) return amount;
 
-  let usdAmount = amount;
-  if (from === 'tzs') usdAmount = amount / usdToTzs;
-  if (from === 'ntzs') usdAmount = amount / usdToNTzs;
-  if (from === 'pi') usdAmount = amount * piGcvUsd;
+  // Convert kwenda USD kwanza (Base Currency)
+  const amountInUSD = from === 'USD' ? amount : amount / CURRENCIES[from].rateToUSD;
 
-  if (to === 'usd') return usdAmount;
-  if (to === 'tzs') return usdAmount * usdToTzs;
-  if (to === 'ntzs') return usdAmount * usdToNTzs;
-  if (to === 'pi') return usdAmount / piGcvUsd;
-  return usdAmount;
-};
+  // Convert kutoka USD kwenda sarafu inayotakiwa (Target)
+  if (to === 'USD') return amountInUSD;
+  return amountInUSD * CURRENCIES[to].rateToUSD;
+}
 
-export const getProductPrice = (product: any, currency: string) => {
-  const usd = getUsdBasePrice(product);
-  return convertAmount(usd, 'usd', currency);
-};
+/**
+ * Inaweka format nzuri ya namba na alama ya sarafu (Mfano: "$1,200.00" au "TSh 3,240,000")
+ */
+export function formatCurrency(
+  amount: number,
+  currency: CurrencyCode = 'USD'
+): string {
+  const config = CURRENCIES[currency] || CURRENCIES.USD;
+  const formattedNumber = new Intl.NumberFormat('en-US', {
+    minimumFractionDigits: config.decimals,
+    maximumFractionDigits: config.decimals,
+  }).format(amount);
 
-export const getCurrencySymbol = (currency: string) => {
-  if (currency === 'tzs') return 'TSh';
-  if (currency === 'ntzs') return 'nTSh';
-  if (currency === 'usd') return '$';
-  if (currency === 'pi') return 'Π';
-  return '$';
-};
-
-export const getCurrencyColor = (currency: string) => {
-  if (currency === 'tzs') return 'text-sky-300 font-bold';
-  if (currency === 'ntzs') return 'text-cyan-300 font-bold';
-  if (currency === 'usd') return 'text-amber-300 font-bold';
-  if (currency === 'pi') return 'text-violet-300 font-bold';
-  return 'text-amber-300 font-bold';
-};
-
-export const formatCurrencyAmount = (currency: string, amount: number) => {
-  const normalized = (currency || '').toLowerCase();
-  if (normalized === 'tzs') {
-    return `${getCurrencySymbol(normalized)} ${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-  }
-  if (normalized === 'ntzs') {
-    return `${getCurrencySymbol(normalized)} ${amount.toLocaleString('en-US', { maximumFractionDigits: 0 })}`;
-  }
-  if (normalized === 'pi') {
-    return `${getCurrencySymbol(normalized)} ${amount.toFixed(8)}`;
-  }
-  return `${getCurrencySymbol(normalized)} ${amount.toFixed(2)}`;
-};
+  return `${config.symbol} ${formattedNumber}`;
+}

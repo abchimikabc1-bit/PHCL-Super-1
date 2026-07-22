@@ -1,320 +1,338 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
-import { CheckCircle, Truck, CreditCard } from 'lucide-react';
-import { convertAmount, formatCurrencyAmount, PI_GCV_USD } from './currency-utils';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { 
+  CURRENCIES, 
+  CurrencyCode, 
+  PAYMENT_METHODS, 
+  PaymentMethod, 
+  convertCurrency, 
+  formatCurrency 
+} from './currency';
+import { MARKETPLACE_PRODUCTS, MarketplaceProduct, getMarketplaceProductImage } from '../marketplace-products';
 
-export type MobileNetworkCode = 'mpesa' | 'tigopesa' | 'airtelmoney' | 'halopesa';
-
-export interface MobilePaymentDetails {
-  network: MobileNetworkCode | null;
-  phone: string;
+// Mfano wa bidhaa zilizopo kwenye Cart kwa ajili ya Onyesho la Checkout
+interface CartItem {
+  product: MarketplaceProduct;
+  quantity: number;
 }
 
-interface CheckoutProps {
-  darkMode: boolean;
-  total: number;
-  currency: string;
-  language?: 'sw' | 'en';
-  onCompletePurchase?: (
-    paymentMethod: 'usd' | 'tzs' | 'ntzs' | 'pi',
-    mobileDetails?: MobilePaymentDetails
-  ) => void;
-  canCompletePurchase?: boolean;
-  isSubmitting?: boolean;
-  onBlockedPurchase?: (reason: 'default' | 'mobile_details') => void;
-  allowPiPayments?: boolean;
-  onMobilePaymentDetailsChange?: (details: MobilePaymentDetails) => void;
-}
+export default function Checkout() {
+  // Demo Cart Items (Unapoingiza Cart yako halisi utaunganisha na State Manager/Context)
+  const [cartItems] = useState<CartItem[]>([
+    { product: MARKETPLACE_PRODUCTS[0], quantity: 1 }, // Mercedes C200
+    { product: MARKETPLACE_PRODUCTS[6], quantity: 2 }, // iPhone 16 Pro Max
+  ]);
 
-export function Checkout({
-  darkMode,
-  total,
-  currency,
-  language = 'en',
-  onCompletePurchase,
-  canCompletePurchase = true,
-  isSubmitting = false,
-  onBlockedPurchase,
-  allowPiPayments = true,
-  onMobilePaymentDetailsChange,
-}: CheckoutProps) {
-  const [paymentMethod, setPaymentMethod] = useState<'usd' | 'tzs' | 'ntzs' | 'pi'>('usd');
-  const [mobileNetwork, setMobileNetwork] = useState<MobileNetworkCode | ''>('');
-  const [mobileNumber, setMobileNumber] = useState('');
-  const usdTotal = convertAmount(total, currency, 'usd');
-  const tzsTotal = convertAmount(usdTotal, 'usd', 'tzs');
-  const ntzsTotal = convertAmount(usdTotal, 'usd', 'ntzs');
-  const piTotal = convertAmount(usdTotal, 'usd', 'pi');
+  // States za Checkout
+  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>('USD');
+  const [selectedPayment, setSelectedPayment] = useState<PaymentMethod>(PAYMENT_METHODS[0]);
+  const [accountInput, setAccountInput] = useState('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(false);
 
-  const isMobileNetworkPayment = paymentMethod === 'tzs' || paymentMethod === 'ntzs';
-  const normalizedMobilePhone = mobileNumber.trim().replace(/[\s()-]/g, '');
-  const mobileNumberValid = /^\+?[0-9]{10,15}$/.test(normalizedMobilePhone);
-  const mobileDetailsValid = !isMobileNetworkPayment || (!!mobileNetwork && mobileNumberValid);
+  // Form States
+  const [shippingInfo, setShippingInfo] = useState({
+    fullName: '',
+    phone: '',
+    city: 'Dar es Salaam',
+    address: '',
+  });
 
-  const mobileDetails = useMemo<MobilePaymentDetails>(
-    () => ({
-      network: mobileNetwork || null,
-      phone: normalizedMobilePhone,
-    }),
-    [mobileNetwork, normalizedMobilePhone]
+  // Kukokotoa Mahesabu
+  const rawSubtotalUSD = cartItems.reduce(
+    (acc, item) => acc + item.product.priceUSD * item.quantity,
+    0
   );
 
-  useEffect(() => {
-    onMobilePaymentDetailsChange?.(mobileDetails);
-  }, [mobileDetails, onMobilePaymentDetailsChange]);
+  const shippingCostUSD = 150; // Flat rate shipping
+  const totalUSD = rawSubtotalUSD + shippingCostUSD;
 
-  useEffect(() => {
-    const normalizedCurrency = (currency || '').toLowerCase();
-    if (
-      (normalizedCurrency === 'usd' ||
-        normalizedCurrency === 'tzs' ||
-        normalizedCurrency === 'ntzs' ||
-        normalizedCurrency === 'pi') &&
-      paymentMethod !== normalizedCurrency
-    ) {
-      setPaymentMethod(normalizedCurrency as 'usd' | 'tzs' | 'ntzs' | 'pi');
+  // Kubadilisha Thamani Kulingana na Sarafu Iliyochaguliwa
+  const subtotalConverted = convertCurrency(rawSubtotalUSD, 'USD', selectedCurrency);
+  const shippingConverted = convertCurrency(shippingCostUSD, 'USD', selectedCurrency);
+  const totalConverted = convertCurrency(totalUSD, 'USD', selectedCurrency);
+
+  // Chuja Njia za Malipo Zinazokubalika na Sarafu Iliyochaguliwa
+  const availablePayments = PAYMENT_METHODS.filter((method) =>
+    method.supportedCurrencies.includes(selectedCurrency)
+  );
+
+  // Kubadili Sarafu na kuweka Payment Method ya kwanza inayokubalika
+  const handleCurrencyChange = (code: CurrencyCode) => {
+    setSelectedCurrency(code);
+    const validMethods = PAYMENT_METHODS.filter((m) =>
+      m.supportedCurrencies.includes(code)
+    );
+    if (validMethods.length > 0 && !validMethods.includes(selectedPayment)) {
+      setSelectedPayment(validMethods[0]);
     }
-  }, [currency, paymentMethod]);
+  };
 
-  const copy = language === 'sw'
-    ? {
-        title: 'Malipo',
-        stepCart: 'Ukaguzi wa Cart',
-        stepShipping: 'Usafirishaji',
-        stepPayment: 'Malipo',
-        orderSummary: 'Muhtasari wa Oda',
-        subtotal: 'Jumla ndogo',
-        shipping: 'Usafirishaji',
-        free: 'Bure',
-        total: 'Jumla',
-        acceptedTotals: 'Jumla zinazokubalika kwa malipo',
-        paymentMethod: 'Njia ya Malipo',
-        usdPayment: 'Malipo ya USD',
-        piPayment: 'Pi Network',
-        disabledByAdmin: '(Imezimwa na Admin)',
-        tzsPayment: 'Malipo ya TZS',
-        ntzsPayment: 'Malipo ya nTZS',
-        piValuation: 'Thamani ya Pi hutumia GCV: 1 PI =',
-        piDisabledHint: 'Malipo ya PI yamezimwa kwa sasa na mipangilio ya administrator.',
-        mobileMoneyTitle: 'Malipo ya Mtandao wa Simu',
-        mobileMoneyHint: 'Kwa TZS/nTZS, chagua mtandao na andika namba ya simu ya malipo.',
-        networkLabel: 'Mtandao',
-        phoneLabel: 'Namba ya Simu ya Malipo',
-        networkPlaceholder: 'Chagua mtandao',
-        phonePlaceholder: 'Mfano: 2557XXXXXXXX',
-        mobileNetworkRequired: 'Tafadhali chagua mtandao wa simu na andika namba sahihi kabla ya kukamilisha malipo.',
-        mpesa: 'M-Pesa',
-        tigopesa: 'Tigo Pesa',
-        airtelmoney: 'Airtel Money',
-        halopesa: 'HaloPesa',
-        completePurchase: 'Kamilisha Ununuzi',
-        processingPurchase: 'Inachakata ununuzi...',
-      }
-    : {
-        title: 'Checkout',
-        stepCart: 'Cart Review',
-        stepShipping: 'Shipping',
-        stepPayment: 'Payment',
-        orderSummary: 'Order Summary',
-        subtotal: 'Subtotal',
-        shipping: 'Shipping',
-        free: 'Free',
-        total: 'Total',
-        acceptedTotals: 'Accepted payment totals',
-        paymentMethod: 'Payment Method',
-        usdPayment: 'USD Payment',
-        piPayment: 'Pi Network',
-        disabledByAdmin: '(Disabled by Admin)',
-        tzsPayment: 'TZS Payment',
-        ntzsPayment: 'nTZS Payment',
-        piValuation: 'Pi valuation uses GCV: 1 PI =',
-        piDisabledHint: 'PI checkout is currently disabled by administrator settings.',
-          mobileMoneyTitle: 'Mobile Network Payment',
-          mobileMoneyHint: 'For TZS/nTZS payments, select a mobile network and enter the payment phone number.',
-          networkLabel: 'Network',
-          phoneLabel: 'Payment Phone Number',
-          networkPlaceholder: 'Select network',
-          phonePlaceholder: 'Example: 2557XXXXXXXX',
-          mobileNetworkRequired: 'Please choose a mobile network and enter a valid phone number before completing checkout.',
-          mpesa: 'M-Pesa',
-          tigopesa: 'Tigo Pesa',
-          airtelmoney: 'Airtel Money',
-          halopesa: 'HaloPesa',
-        completePurchase: 'Complete Purchase',
-        processingPurchase: 'Processing purchase...',
-      };
+  const handlePlaceOrder = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!shippingInfo.fullName || !shippingInfo.phone || !accountInput) {
+      alert('Tafadhali jaza taarifa zote zinazohitajika!');
+      return;
+    }
 
-  const effectiveCanCompletePurchase = canCompletePurchase && mobileDetailsValid && !isSubmitting;
+    setIsProcessing(true);
 
-  const steps = [
-    { id: 1, title: copy.stepCart, icon: CheckCircle },
-    { id: 2, title: copy.stepShipping, icon: Truck },
-    { id: 3, title: copy.stepPayment, icon: CreditCard },
-  ];
+    // Simulation ya Malipo (Payment Processing)
+    setTimeout(() => {
+      setIsProcessing(false);
+      setOrderSuccess(true);
+    }, 2500);
+  };
 
   return (
-    <div className={`${darkMode ? 'bg-slate-900 border border-violet-400/20' : 'bg-gradient-to-br from-indigo-50 via-white to-cyan-50 border border-violet-200'} rounded-xl p-6 shadow-lg global-glass`}>
-      <h2 className={`text-2xl font-bold mb-6 ${darkMode ? 'text-white' : ''} ink-glow`}>{copy.title}</h2>
-      
-      <div className="mb-8">
-        <div className="flex justify-between items-center">
-          {steps.map((step, idx) => {
-            const Icon = step.icon;
-            return (
-              <div key={step.id} className="flex flex-col items-center flex-1">
-                <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-2 ${idx < 2 ? 'bg-gradient-to-r from-emerald-500 to-green-600' : 'bg-gradient-to-r from-blue-500 to-cyan-600'}`}>
-                  <Icon className="text-white" size={24} />
-                </div>
-                <p className={`text-sm font-bold text-center ${darkMode ? 'text-white' : ''}`}>{step.title}</p>
-                {idx < steps.length - 1 && (
-                  <div className={`flex-1 h-1 mt-2 ${darkMode ? 'bg-gray-600' : 'bg-gray-300'}`}></div>
-                )}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 sm:px-8">
+      <div className="max-w-6xl mx-auto space-y-8">
+        {/* Header */}
+        <div className="border-b border-slate-800 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <span className="text-amber-500 font-bold text-xs tracking-wider uppercase">
+              Secure Checkout Engine
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white">
+              Kamilisha Malipo na Oda
+            </h1>
+          </div>
 
-      <div className={`border-t-2 pt-6 mb-6 ${darkMode ? 'border-gray-600' : 'border-gray-300'}`}>
-        <div className="mb-4">
-          <p className={`text-lg font-bold mb-2 ${darkMode ? 'text-white' : ''} ink-soft`}>{copy.orderSummary}</p>
-          <p className={`${darkMode ? 'text-gray-200' : 'text-gray-700'} ink-soft`}>{copy.subtotal}: {formatCurrencyAmount(currency, total)}</p>
-          <p className={`${darkMode ? 'text-gray-200' : 'text-gray-700'} ink-soft`}>{copy.shipping}: {copy.free}</p>
-          <p className={`text-xl font-bold mt-2 ${currency === 'usd' ? 'text-amber-300' : currency === 'tzs' ? 'text-sky-300' : currency === 'ntzs' ? 'text-cyan-300' : 'text-violet-300'} ink-glow`}>{copy.total}: {formatCurrencyAmount(currency, total)}</p>
-          <div className={`mt-3 rounded-lg p-3 text-sm ${darkMode ? 'bg-slate-800 text-slate-200' : 'bg-indigo-50 text-indigo-900'} global-glass`}>
-            <p className="font-semibold mb-1">{copy.acceptedTotals}</p>
-            <p>USD: {formatCurrencyAmount('usd', usdTotal)}</p>
-            <p>TZS: {formatCurrencyAmount('tzs', tzsTotal)}</p>
-            <p>nTZS: {formatCurrencyAmount('ntzs', ntzsTotal)}</p>
-            <p>PI: {formatCurrencyAmount('pi', piTotal)}</p>
+          {/* Dynamic Currency Switcher */}
+          <div className="bg-slate-900 border border-slate-800 p-1.5 rounded-2xl flex items-center gap-1 self-start md:self-auto">
+            {(Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => (
+              <button
+                key={code}
+                onClick={() => handleCurrencyChange(code)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                  selectedCurrency === code
+                    ? 'bg-amber-500 text-slate-950 shadow-md'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }`}
+              >
+                {CURRENCIES[code].symbol} {code}
+              </button>
+            ))}
           </div>
         </div>
-      </div>
 
-      <div className="space-y-3">
-        <h3 className={`font-bold mb-3 ${darkMode ? 'text-white' : ''}`}>{copy.paymentMethod}</h3>
-        <label style={{ minHeight: '44px' }} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer bg-gradient-to-r from-blue-50 to-cyan-50 dark:from-blue-900 dark:to-cyan-900">
-          <input
-            type="radio"
-            name="payment"
-            checked={paymentMethod === 'usd'}
-            onChange={() => setPaymentMethod('usd')}
-            className="w-5 h-5"
-          />
-          <span className={`font-bold ${darkMode ? 'text-white' : ''}`}>{copy.usdPayment}</span>
-        </label>
-        <label style={{ minHeight: '44px' }} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
-          <input
-            type="radio"
-            name="payment"
-            checked={paymentMethod === 'pi'}
-            onChange={() => setPaymentMethod('pi')}
-            disabled={!allowPiPayments}
-            className="w-5 h-5"
-          />
-          <span className={`font-bold ${darkMode ? 'text-white' : ''} ${!allowPiPayments ? 'opacity-60' : ''}`}>
-            {copy.piPayment} {!allowPiPayments ? copy.disabledByAdmin : ''}
-          </span>
-        </label>
-        <label style={{ minHeight: '44px' }} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
-          <input
-            type="radio"
-            name="payment"
-            checked={paymentMethod === 'tzs'}
-            onChange={() => setPaymentMethod('tzs')}
-            className="w-5 h-5"
-          />
-          <span className={`font-bold ${darkMode ? 'text-white' : ''}`}>{copy.tzsPayment}</span>
-        </label>
-        <label style={{ minHeight: '44px' }} className="flex items-center gap-3 p-3 border rounded-lg cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-700">
-          <input
-            type="radio"
-            name="payment"
-            checked={paymentMethod === 'ntzs'}
-            onChange={() => setPaymentMethod('ntzs')}
-            className="w-5 h-5"
-          />
-          <span className={`font-bold ${darkMode ? 'text-white' : ''}`}>{copy.ntzsPayment}</span>
-        </label>
-        <p className={`text-xs ${darkMode ? 'text-violet-200' : 'text-violet-700'}`}>
-          {copy.piValuation} ${PI_GCV_USD.toLocaleString('en-US')}
-        </p>
-        {!allowPiPayments && (
-          <p className={`text-xs ${darkMode ? 'text-amber-200' : 'text-amber-700'}`}>
-            {copy.piDisabledHint}
-          </p>
-        )}
+        {/* Success Modal Notification */}
+        <AnimatePresence>
+          {orderSuccess && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0 }}
+              className="bg-emerald-500/10 border border-emerald-500/30 p-6 rounded-3xl text-center space-y-3"
+            >
+              <div className="text-4xl">🎉</div>
+              <h2 className="text-2xl font-bold text-emerald-400">
+                Oda Yako Imepokelewa Kikamilifu!
+              </h2>
+              <p className="text-slate-300 text-sm max-w-lg mx-auto">
+                Asante **{shippingInfo.fullName}**! Malipo ya **{formatCurrency(totalConverted, selectedCurrency)}** kupitia **{selectedPayment.name}** yamethibitishwa. Tutawasiliana nawe kupitia **{shippingInfo.phone}**.
+              </p>
+              <button
+                onClick={() => setOrderSuccess(false)}
+                className="bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold px-6 py-2 rounded-xl text-sm transition"
+              >
+                Rudi Kwenye Duka
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {isMobileNetworkPayment && (
-          <div className={`mt-3 rounded-lg border p-3 ${darkMode ? 'border-cyan-300/30 bg-cyan-500/10' : 'border-cyan-200 bg-cyan-50'}`}>
-            <p className={`text-sm font-semibold ${darkMode ? 'text-cyan-100' : 'text-cyan-900'}`}>{copy.mobileMoneyTitle}</p>
-            <p className={`mt-1 text-xs ${darkMode ? 'text-cyan-100/85' : 'text-cyan-800/85'}`}>{copy.mobileMoneyHint}</p>
+        <form onSubmit={handlePlaceOrder} className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* Left Column: Form Info & Payment Options (8 Cols) */}
+          <div className="lg:col-span-7 space-y-6">
+            {/* 1. Taarifa za Mteja & Anwani */}
+            <div className="bg-slate-900 border border-slate-800/90 rounded-3xl p-6 space-y-4">
+              <h2 className="text-lg font-bold text-amber-400 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-amber-500/10 text-amber-400 text-xs flex items-center justify-center border border-amber-500/20">
+                  1
+                </span>
+                Anwani na Anwani ya Utoaji (Shipping)
+              </h2>
 
-            <div className="mt-3 grid gap-3 sm:grid-cols-2">
-              <div>
-                <label className={`mb-1 block text-xs font-semibold ${darkMode ? 'text-cyan-100' : 'text-cyan-900'}`}>
-                  {copy.networkLabel}
-                </label>
-                <select
-                  value={mobileNetwork}
-                  onChange={(event) => setMobileNetwork(event.target.value as MobileNetworkCode | '')}
-                  style={{ minHeight: '44px' }}
-                  className="w-full rounded-lg border border-white/20 bg-slate-900/70 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
-                >
-                  <option value="">{copy.networkPlaceholder}</option>
-                  <option value="mpesa">{copy.mpesa}</option>
-                  <option value="tigopesa">{copy.tigopesa}</option>
-                  <option value="airtelmoney">{copy.airtelmoney}</option>
-                  <option value="halopesa">{copy.halopesa}</option>
-                </select>
-              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-sm">
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1 font-medium">Jina Kamili</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Mfano: Juma Rashid"
+                    value={shippingInfo.fullName}
+                    onChange={(e) => setShippingInfo({ ...shippingInfo, fullName: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500 transition"
+                  />
+                </div>
 
-              <div>
-                <label className={`mb-1 block text-xs font-semibold ${darkMode ? 'text-cyan-100' : 'text-cyan-900'}`}>
-                  {copy.phoneLabel}
-                </label>
-                <input
-                  type="tel"
-                  value={mobileNumber}
-                  onChange={(event) => setMobileNumber(event.target.value)}
-                  placeholder={copy.phonePlaceholder}
-                  style={{ minHeight: '44px' }}
-                  className="w-full rounded-lg border border-white/20 bg-slate-900/70 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300"
-                />
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1 font-medium">Namba ya Simu</label>
+                  <input
+                    type="tel"
+                    required
+                    placeholder="Mfano: 0754 000 000"
+                    value={shippingInfo.phone}
+                    onChange={(e) => setShippingInfo({ ...shippingInfo, phone: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500 transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1 font-medium">Mji / Mkoa</label>
+                  <input
+                    type="text"
+                    required
+                    value={shippingInfo.city}
+                    onChange={(e) => setShippingInfo({ ...shippingInfo, city: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500 transition"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-slate-400 text-xs mb-1 font-medium">Anwani ya Mtaani / Mtaa</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Mfano: Mikocheni, Mwai Kibaki Rd"
+                    value={shippingInfo.address}
+                    onChange={(e) => setShippingInfo({ ...shippingInfo, address: e.target.value })}
+                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500 transition"
+                  />
+                </div>
               </div>
             </div>
 
-            {!mobileDetailsValid && (
-              <p className="mt-2 text-xs text-amber-200">{copy.mobileNetworkRequired}</p>
-            )}
+            {/* 2. Njia za Malipo (Payment Gateway) */}
+            <div className="bg-slate-900 border border-slate-800/90 rounded-3xl p-6 space-y-4">
+              <h2 className="text-lg font-bold text-amber-400 flex items-center gap-2">
+                <span className="w-6 h-6 rounded-full bg-amber-500/10 text-amber-400 text-xs flex items-center justify-center border border-amber-500/20">
+                  2
+                </span>
+                Chagua Njia ya Malipo ({selectedCurrency})
+              </h2>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {availablePayments.map((method) => {
+                  const isSelected = selectedPayment.id === method.id;
+                  return (
+                    <div
+                      key={method.id}
+                      onClick={() => setSelectedPayment(method)}
+                      className={`p-4 rounded-2xl border cursor-pointer transition flex items-center justify-between ${
+                        isSelected
+                          ? 'bg-amber-500/10 border-amber-500 text-white'
+                          : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
+                      }`}
+                    >
+                      <div className="space-y-0.5">
+                        <p className="font-bold text-sm text-slate-100">{method.name}</p>
+                        <p className="text-xs text-slate-500">Provider: {method.provider}</p>
+                      </div>
+                      <div className={`w-4 h-4 rounded-full border flex items-center justify-center ${isSelected ? 'border-amber-500 bg-amber-500' : 'border-slate-600'}`}>
+                        {isSelected && <div className="w-1.5 h-1.5 rounded-full bg-slate-950" />}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* Dynamic Account Input Box */}
+              <div className="pt-2">
+                <label className="block text-slate-300 text-xs mb-1 font-medium">
+                  {selectedPayment.accountDetailsHint}
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder={selectedPayment.accountDetailsHint}
+                  value={accountInput}
+                  onChange={(e) => setAccountInput(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-slate-100 focus:outline-none focus:border-amber-500 transition font-mono text-sm"
+                />
+              </div>
+            </div>
           </div>
-        )}
+
+          {/* Right Column: Order Summary (5 Cols) */}
+          <div className="lg:col-span-5 space-y-6">
+            <div className="bg-slate-900 border border-slate-800/90 rounded-3xl p-6 space-y-5 sticky top-6">
+              <h2 className="text-lg font-bold text-slate-100 border-b border-slate-800 pb-3">
+                Muhtasari wa Oda ({cartItems.length})
+              </h2>
+
+              {/* Mini Cart List */}
+              <div className="space-y-3 max-h-60 overflow-y-auto pr-1">
+                {cartItems.map(({ product, quantity }) => (
+                  <div key={product.id} className="flex items-center gap-3 text-sm">
+                    <img
+                      src={product.image || getMarketplaceProductImage(product)}
+                      alt={product.name}
+                      className="w-12 h-12 rounded-xl object-cover bg-slate-950 border border-slate-800"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-semibold text-slate-200 truncate">{product.name}</p>
+                      <p className="text-xs text-slate-400">Idadi: {quantity}</p>
+                    </div>
+                    <p className="font-bold text-amber-400">
+                      {formatCurrency(
+                        convertCurrency(product.priceUSD * quantity, 'USD', selectedCurrency),
+                        selectedCurrency
+                      )}
+                    </p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Calculation Rows */}
+              <div className="border-t border-slate-800 pt-4 space-y-2 text-sm text-slate-400">
+                <div className="flex justify-between">
+                  <span>Jumla Ndogo (Subtotal)</span>
+                  <span className="text-slate-200 font-medium">
+                    {formatCurrency(subtotalConverted, selectedCurrency)}
+                  </span>
+                </div>
+                <div className="flex justify-between">
+                  <span>Usafirishaji (Shipping)</span>
+                  <span className="text-slate-200 font-medium">
+                    {formatCurrency(shippingConverted, selectedCurrency)}
+                  </span>
+                </div>
+                <div className="flex justify-between text-base font-extrabold text-slate-100 pt-3 border-t border-slate-800">
+                  <span>Jumla Kuu (Total)</span>
+                  <span className="text-amber-400 text-xl">
+                    {formatCurrency(totalConverted, selectedCurrency)}
+                  </span>
+                </div>
+              </div>
+
+              {/* Submit Button */}
+              <button
+                type="submit"
+                disabled={isProcessing}
+                className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black py-4 rounded-2xl shadow-lg transition transform active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isProcessing ? (
+                  <>
+                    <span className="animate-spin text-xl">🌀</span> Inachakata Malipo...
+                  </>
+                ) : (
+                  <>
+                    🔒 Lipa {formatCurrency(totalConverted, selectedCurrency)} Sasa
+                  </>
+                )}
+              </button>
+
+              <p className="text-center text-xs text-slate-500">
+                🔒 Malipo yako yanalindwa kwa mfumo wa usalama wa PHCL Encrypted Protocol.
+              </p>
+            </div>
+          </div>
+        </form>
       </div>
-
-      <button
-        type="button"
-        onClick={() => {
-          if (isSubmitting) {
-            return;
-          }
-
-          if (effectiveCanCompletePurchase) {
-            onCompletePurchase?.(paymentMethod, isMobileNetworkPayment ? mobileDetails : undefined);
-            return;
-          }
-          onBlockedPurchase?.(mobileDetailsValid ? 'default' : 'mobile_details');
-        }}
-        style={{ minHeight: '44px', paddingTop: '12px', paddingBottom: '12px' }}
-        className={`w-full mt-6 px-6 py-3 text-white font-bold rounded-lg shadow-lg transition-all ${
-          effectiveCanCompletePurchase
-            ? 'bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700'
-            : 'bg-slate-600 cursor-not-allowed opacity-80'
-        }`}
-        disabled={isSubmitting}
-      >
-        {isSubmitting ? copy.processingPurchase : copy.completePurchase}
-      </button>
     </div>
   );
 }

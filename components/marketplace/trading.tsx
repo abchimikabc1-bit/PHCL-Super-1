@@ -1,118 +1,276 @@
 'use client';
 
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { TrendingUp, TrendingDown, RefreshCw } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MARKETPLACE_PRODUCTS, MarketplaceProduct, getMarketplaceProductImage } from '../marketplace-products';
+import { 
+  CURRENCIES, 
+  CurrencyCode, 
+  formatCurrency, 
+  convertCurrency 
+} from './currency';
 
-type Trend = 'up' | 'down' | 'neutral';
-
-interface TradingProps {
-  darkMode: boolean;
+export interface Offer {
+  id: string;
+  offeredBy: 'user' | 'seller';
+  amountUSD: number;
+  currency: CurrencyCode;
+  note: string;
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'COUNTERED';
+  timestamp: string;
 }
 
-const initialData = [
-  { name: 'Bitcoin', symbol: 'BTC', basePrice: 65420.5, icon: '₿', color: 'from-yellow-400 to-yellow-600' },
-  { name: 'Ethereum', symbol: 'ETH', basePrice: 3450.75, icon: 'Ξ', color: 'from-blue-400 to-blue-600' },
-  { name: 'Pi Network', symbol: 'PI', basePrice: 314159, icon: 'Π', color: 'from-purple-400 to-purple-600' },
-  { name: 'USDT', symbol: 'USDT', basePrice: 1.0, icon: '₮', color: 'from-green-400 to-green-600' },
-];
+export default function Trading({
+  product = MARKETPLACE_PRODUCTS[0], // Default product (e.g. Mercedes C200)
+  onNavigateToCheckout,
+}: {
+  product?: MarketplaceProduct;
+  onNavigateToCheckout?: () => void;
+}) {
+  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>('TZS');
+  const [customOfferInput, setCustomOfferInput] = useState('');
+  const [offerNoteInput, setOfferNoteInput] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-export function Trading({ darkMode }: TradingProps) {
-  const [cryptoData, setCryptoData] = useState(
-    initialData.map((c) => ({ ...c, price: c.basePrice, change: 0, trend: 'neutral' as Trend }))
-  );
-  const [isUpdating, setIsUpdating] = useState(false);
+  // Demo Negotiation Offers Log
+  const [offersHistory, setOffersHistory] = useState<Offer[]>([
+    {
+      id: 'off-1',
+      offeredBy: 'seller',
+      amountUSD: product.priceUSD,
+      currency: 'USD',
+      note: 'Bei rasmi ya kuanzia sokoni.',
+      status: 'COUNTERED',
+      timestamp: 'Juzi 10:00 AM',
+    },
+    {
+      id: 'off-2',
+      offeredBy: 'user',
+      amountUSD: product.priceUSD * 0.9, // 10% discount request
+      currency: 'TZS',
+      note: 'Naomba unishushie kwa 10% nitatuma pesa leo hivi.',
+      status: 'PENDING',
+      timestamp: 'Leo 11:30 AM',
+    },
+  ]);
 
-  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const latestOffer = offersHistory[offersHistory.length - 1];
 
-  const updatePrices = useCallback(() => {
-    setIsUpdating(true);
+  const handleSendOffer = (e: React.FormEvent) => {
+    e.preventDefault();
+    const offeredAmount = parseFloat(customOfferInput);
 
-    if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    timeoutRef.current = setTimeout(() => {
-      setCryptoData((prevData) =>
-        prevData.map((crypto) => {
-          const randomChange = (Math.random() - 0.5) * 10;
-          const newPrice = Math.max(
-            crypto.basePrice * 0.95,
-            crypto.basePrice + (crypto.basePrice * randomChange) / 100
-          );
-          const change = ((newPrice - crypto.basePrice) / crypto.basePrice) * 100;
+    if (!offeredAmount || offeredAmount <= 0) {
+      alert('Tafadhali weka kiasi halali cha ofa yako!');
+      return;
+    }
 
-          return {
-            ...crypto,
-            price: newPrice,
-            change: parseFloat(change.toFixed(2)),
-            trend: change > 0 ? 'up' : change < 0 ? 'down' : 'neutral',
-          };
-        })
-      );
-      setIsUpdating(false);
-    }, 500);
-  }, []);
+    setIsSubmitting(true);
 
-  useEffect(() => {
-    updatePrices();
-    intervalRef.current = setInterval(updatePrices, 5000);
+    // Badilisha kiasi kwenda USD kwa ajili ya kuhifadhi kwenye Data Base
+    const amountInUSD = convertCurrency(offeredAmount, selectedCurrency, 'USD');
 
-    return () => {
-      if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [updatePrices]);
+    setTimeout(() => {
+      const newOffer: Offer = {
+        id: `off-${Date.now()}`,
+        offeredBy: 'user',
+        amountUSD: amountInUSD,
+        currency: selectedCurrency,
+        note: offerNoteInput || 'Ofa mpya kutoka kwa mnunuzi.',
+        status: 'PENDING',
+        timestamp: 'Punde Hivi',
+      };
+
+      setOffersHistory([...offersHistory, newOffer]);
+      setIsSubmitting(false);
+      setCustomOfferInput('');
+      setOfferNoteInput('');
+    }, 1500);
+  };
 
   return (
-    <div className={`${darkMode ? 'bg-gray-800' : 'bg-blue-50'} rounded-lg p-8`}>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className={`text-3xl font-bold ${darkMode ? 'text-white' : ''}`}>Live Trading Dashboard</h2>
-        <button type="button" onClick={updatePrices} disabled={isUpdating} className={`px-6 py-3 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white font-bold rounded-lg shadow-lg transition-all flex items-center gap-2 ${isUpdating ? 'opacity-50 cursor-not-allowed' : ''}`}>
-          <RefreshCw size={20} className={isUpdating ? 'animate-spin' : ''} />
-          Update Rates
-        </button>
-      </div>
+    <div className="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 sm:px-8">
+      <div className="max-w-5xl mx-auto space-y-8">
+        {/* Header Section */}
+        <div className="border-b border-slate-800 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <span className="text-amber-500 font-bold text-xs tracking-wider uppercase">
+              Bargain & Bidding Hub
+            </span>
+            <h1 className="text-3xl sm:text-4xl font-extrabold text-white flex items-center gap-3">
+              🤝 Trading & Ofa ya Bei
+            </h1>
+          </div>
 
-      <div className="flex gap-2 mb-6">
-        <button type="button" className="px-4 py-3 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-semibold shadow-lg rounded-md transition-all">Buy</button>
-        <button type="button" className="px-4 py-3 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-semibold shadow-lg rounded-md transition-all">Sell</button>
-        <button type="button" className="px-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white font-semibold shadow-lg rounded-md transition-all">Trade</button>
-      </div>
+          {/* Currency Switcher */}
+          <div className="bg-slate-900 border border-slate-800 p-1.5 rounded-2xl flex items-center gap-1 self-start md:self-auto">
+            {(Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => (
+              <button
+                key={code}
+                onClick={() => setSelectedCurrency(code)}
+                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
+                  selectedCurrency === code
+                    ? 'bg-amber-500 text-slate-950 shadow-md'
+                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                }`}
+              >
+                {CURRENCIES[code].symbol} {code}
+              </button>
+            ))}
+          </div>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        {cryptoData.map((crypto) => (
-          <div key={crypto.symbol} className={`border-2 rounded-lg p-6 transition-all ${darkMode ? 'bg-gray-700 border-gray-600' : 'bg-gray-50 border-gray-200'} ${crypto.trend === 'up' ? 'border-green-500 shadow-lg shadow-green-500/20' : crypto.trend === 'down' ? 'border-red-500 shadow-lg shadow-red-500/20' : ''}`}>
-            <div className="flex justify-between items-start mb-3">
-              <div className="flex items-center gap-3">
-                <div className={`p-3 rounded-lg bg-gradient-to-br ${crypto.color}`}>
-                  <span className="text-2xl">{crypto.icon}</span>
-                </div>
-                <div>
-                  <p className={`font-bold text-lg ${darkMode ? 'text-white' : ''}`}>{crypto.name}</p>
-                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>{crypto.symbol}</p>
-                </div>
+        {/* Product Details Overview */}
+        <div className="bg-slate-900 border border-slate-800/90 rounded-3xl p-6 flex flex-col sm:flex-row gap-6 items-center">
+          <img
+            src={product.image || getMarketplaceProductImage(product)}
+            alt={product.name}
+            className="w-full sm:w-40 h-40 object-cover rounded-2xl bg-slate-950 border border-slate-800"
+          />
+
+          <div className="space-y-2 flex-1 text-center sm:text-left">
+            <span className="text-xs font-bold text-amber-500 uppercase tracking-widest">
+              {product.category}
+            </span>
+            <h2 className="text-2xl font-black text-slate-100">{product.name}</h2>
+            <p className="text-xs text-slate-400 line-clamp-2">{product.description}</p>
+
+            <div className="pt-2 flex flex-wrap gap-4 items-center justify-center sm:justify-start">
+              <div>
+                <span className="text-[10px] text-slate-500 block uppercase">Bei Rasmi Sokoni</span>
+                <span className="text-lg font-extrabold text-slate-200">
+                  {formatCurrency(convertCurrency(product.priceUSD, 'USD', selectedCurrency), selectedCurrency)}
+                </span>
               </div>
-              <div className={`flex items-center gap-1 font-bold text-lg ${crypto.trend === 'up' ? 'text-green-500' : crypto.trend === 'down' ? 'text-red-500' : 'text-gray-500'}`}>
-                {crypto.trend === 'up' ? <TrendingUp size={24} /> : crypto.trend === 'down' ? <TrendingDown size={24} /> : <span>─</span>}
-                <span>{crypto.change > 0 ? '+' : ''}{crypto.change.toFixed(2)}%</span>
+
+              <div>
+                <span className="text-[10px] text-amber-500 block uppercase">Ofa ya Hivi Karibuni</span>
+                <span className="text-lg font-extrabold text-amber-400">
+                  {formatCurrency(convertCurrency(latestOffer.amountUSD, 'USD', selectedCurrency), selectedCurrency)}
+                </span>
               </div>
-            </div>
-            
-            <p className={`text-3xl font-bold mb-4 ${darkMode ? 'text-white' : ''}`}>${crypto.price.toFixed(crypto.symbol === 'USDT' ? 4 : 2)}</p>
-            
-            <div className={`text-xs mb-4 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-              Base: ${crypto.basePrice.toFixed(2)}
-            </div>
-            
-            <div className="flex gap-2">
-              <button type="button" className="flex-1 px-3 py-2 bg-gradient-to-r from-emerald-500 to-green-600 hover:from-emerald-600 hover:to-green-700 text-white font-bold rounded-md transition-all text-sm">Buy</button>
-              <button type="button" className="flex-1 px-3 py-2 bg-gradient-to-r from-red-500 to-orange-600 hover:from-red-600 hover:to-orange-700 text-white font-bold rounded-md transition-all text-sm">Sell</button>
             </div>
           </div>
-        ))}
-      </div>
+        </div>
 
-      <div className={`mt-6 p-4 rounded-lg text-sm ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-blue-50 text-blue-700'}`}>
-        <p>Live prices update automatically every 5 seconds. Click &quot;Update Rates&quot; to refresh immediately.</p>
-        <p className="mt-1 opacity-90">Demo only: prices are simulated and not real-time exchange data.</p>
+        {/* Trading Main Grid (Offers Log + Action Form) */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+          {/* History / Offers Log (7 Cols) */}
+          <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-4">
+            <h3 className="text-base font-extrabold text-slate-100 flex items-center justify-between border-b border-slate-800 pb-3">
+              <span>📜 Historia ya Mazungumzo</span>
+              <span className="text-xs font-normal text-slate-400">{offersHistory.length} Ofa</span>
+            </h3>
+
+            <div className="space-y-3 max-h-[380px] overflow-y-auto pr-1">
+              <AnimatePresence>
+                {offersHistory.map((offer) => {
+                  const isUser = offer.offeredBy === 'user';
+                  const amountInSelectedCurrency = convertCurrency(offer.amountUSD, 'USD', selectedCurrency);
+
+                  return (
+                    <motion.div
+                      key={offer.id}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className={`p-4 rounded-2xl border ${
+                        isUser
+                          ? 'bg-slate-950/80 border-amber-500/30 text-slate-100'
+                          : 'bg-slate-800/40 border-slate-700 text-slate-200'
+                      }`}
+                    >
+                      <div className="flex justify-between items-start mb-1">
+                        <span className="text-xs font-bold text-amber-400">
+                          {isUser ? '👤 Ofa Yako (Mnunuzi)' : '🏪 Ofa ya Muuzaji'}
+                        </span>
+                        <span className="text-[10px] text-slate-500">{offer.timestamp}</span>
+                      </div>
+
+                      <div className="flex justify-between items-center my-2">
+                        <span className="text-xl font-black text-slate-100">
+                          {formatCurrency(amountInSelectedCurrency, selectedCurrency)}
+                        </span>
+                        <span
+                          className={`text-[10px] font-bold px-2.5 py-1 rounded-lg border ${
+                            offer.status === 'PENDING'
+                              ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                              : offer.status === 'ACCEPTED'
+                              ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                              : 'bg-slate-800 text-slate-400 border-slate-700'
+                          }`}
+                        >
+                          {offer.status}
+                        </span>
+                      </div>
+
+                      <p className="text-xs text-slate-400 italic">"{offer.note}"</p>
+                    </motion.div>
+                  );
+                })}
+              </AnimatePresence>
+            </div>
+          </div>
+
+          {/* Action Form / Make Offer (5 Cols) */}
+          <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-3xl p-6 space-y-6">
+            <h3 className="text-base font-extrabold text-slate-100 border-b border-slate-800 pb-3">
+              ⚡ Tuma Ofa Yako
+            </h3>
+
+            <form onSubmit={handleSendOffer} className="space-y-4">
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Kiasi cha Ofa Yako ({selectedCurrency}):
+                </label>
+                <input
+                  type="number"
+                  step="any"
+                  required
+                  placeholder={`Weka kiasi kwa ${selectedCurrency}`}
+                  value={customOfferInput}
+                  onChange={(e) => setCustomOfferInput(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 font-mono text-sm focus:outline-none focus:border-amber-500 transition"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-slate-400 mb-1">
+                  Ujumbe / Maelezo Mafupi kwa Muuzaji:
+                </label>
+                <textarea
+                  rows={3}
+                  placeholder="Mfano: Naomba unishushie kiasi hiki, nitakamilisha malipo mara moja."
+                  value={offerNoteInput}
+                  onChange={(e) => setOfferNoteInput(e.target.value)}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-3 text-slate-100 text-xs focus:outline-none focus:border-amber-500 transition resize-none"
+                />
+              </div>
+
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black py-4 rounded-2xl shadow-lg transition transform active:scale-[0.99] flex items-center justify-center gap-2 disabled:opacity-50"
+              >
+                {isSubmitting ? (
+                  <>🌀 Inatuma Ofa...</>
+                ) : (
+                  <>🤝 Tuma Ofa kwa Muuzaji</>
+                )}
+              </button>
+            </form>
+
+            {onNavigateToCheckout && (
+              <div className="pt-2 border-t border-slate-800">
+                <button
+                  onClick={onNavigateToCheckout}
+                  className="w-full bg-slate-950 hover:bg-slate-800 text-slate-200 border border-slate-800 font-bold py-3 rounded-2xl text-xs transition"
+                >
+                  🚀 Lipa Bei Rasmi Moja kwa Moja
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
       </div>
     </div>
   );

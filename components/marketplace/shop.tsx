@@ -1,155 +1,207 @@
 'use client';
 
-import { useState } from 'react';
-import { products } from './products-data';
-import { getCurrencyColor } from './currency-utils';
-import { ProductPhoneGallery } from '@/components/products/phone-gallery';
-import { X } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MARKETPLACE_PRODUCTS, MarketplaceProduct, getMarketplaceProductImage } from '../marketplace-products';
+import { 
+  CURRENCIES, 
+  CurrencyCode, 
+  formatCurrency, 
+  convertCurrency 
+} from './currency';
 
-interface ShopProps {
-  darkMode: boolean;
-  onAddToCart: (product: any) => void;
-}
+export default function Shop({
+  onAddToCart,
+  onNavigateToChat,
+  onNavigateToTrading,
+}: {
+  onAddToCart?: (product: MarketplaceProduct) => void;
+  onNavigateToChat?: (product: MarketplaceProduct) => void;
+  onNavigateToTrading?: (product: MarketplaceProduct) => void;
+}) {
+  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>('TZS');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('ALL');
 
-export function Shop({ darkMode, onAddToCart }: ShopProps) {
-  const [selectedCategory, setSelectedCategory] = useState('all');
-  const [selectedPhoneProduct, setSelectedPhoneProduct] = useState<any>(null);
-
-  // Categorize products
-  const vehicleCategories = ['car', 'truck', 'trailer', 'tipper', 'tractor', 'bus', 'motorcycle', 'equipment'];
-  const materialCategories = ['material'];
-  const applianceCategories = ['furniture', 'appliance', 'electronics'];
-  const phoneCategories = ['phone', 'watch'];
-  const cryptoCategories = ['crypto'];
-
-  const getFilteredProducts = () => {
-    if (selectedCategory === 'all') return products;
-    if (selectedCategory === 'vehicles') return products.filter(p => vehicleCategories.includes(p.category));
-    if (selectedCategory === 'materials') return products.filter(p => materialCategories.includes(p.category));
-    if (selectedCategory === 'appliances') return products.filter(p => applianceCategories.includes(p.category));
-    if (selectedCategory === 'phones') return products.filter(p => phoneCategories.includes(p.category));
-    if (selectedCategory === 'crypto') return products.filter(p => cryptoCategories.includes(p.category));
-    return products;
-  };
-
-  const filteredProducts = getFilteredProducts();
+  // Makundi ya Bidhaa Zilizopo
   const categories = [
-    { id: 'all', label: 'All Products', icon: '🏪', color: 'from-blue-600 to-blue-700' },
-    { id: 'vehicles', label: 'Motor Vehicles', icon: '🚗', color: 'from-orange-500 to-red-600' },
-    { id: 'phones', label: 'Phones & Watches', icon: '📱', color: 'from-cyan-500 to-blue-600' },
-    { id: 'materials', label: 'Construction', icon: '🏗️', color: 'from-amber-500 to-yellow-600' },
-    { id: 'appliances', label: 'Appliances', icon: '🛋️', color: 'from-emerald-500 to-green-600' },
-    { id: 'crypto', label: 'Crypto Products', icon: '₿', color: 'from-yellow-500 to-orange-600' },
+    'ALL',
+    ...Array.from(new Set(MARKETPLACE_PRODUCTS.map((p) => p.category))),
   ];
 
+  // Chuja Bidhaa kulingana na Search & Category Filter
+  const filteredProducts = MARKETPLACE_PRODUCTS.filter((product) => {
+    const matchesSearch = product.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      product.description.toLowerCase().includes(searchQuery.toLowerCase());
+    const matchesCategory = selectedCategory === 'ALL' || product.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
   return (
-      <div className={`${darkMode ? 'bg-gray-800' : 'bg-slate-50'} rounded-lg p-6`}>
-      <div className="flex justify-between items-center mb-6">
-        <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : ''}`}>Marketplace - Shop</h2>
-        <div className="flex gap-2">
-          <button className="px-4 py-2 bg-gradient-to-r from-slate-700 to-slate-900 hover:from-slate-800 hover:to-black text-white text-sm font-semibold rounded-md transition-all shadow-md">TZS</button>
-          <button className="px-4 py-2 bg-gradient-to-r from-amber-400 to-yellow-500 hover:from-amber-500 hover:to-yellow-600 text-white text-sm font-semibold rounded-md transition-all shadow-md">USD</button>
-          <button className="px-4 py-2 bg-gradient-to-r from-violet-500 to-purple-600 hover:from-violet-600 hover:to-purple-700 text-white text-sm font-semibold rounded-md transition-all shadow-md">PI</button>
-        </div>
-      </div>
-
-      {/* Category Filter Buttons */}
-      <div className="mb-6">
-        <p className={`text-sm font-semibold mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Shop by Category</p>
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          {categories.map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setSelectedCategory(cat.id)}
-              className={`p-4 rounded-lg font-bold transition-all flex flex-col items-center justify-center gap-2 ${
-                selectedCategory === cat.id
-                  ? `bg-gradient-to-br ${cat.color} text-white shadow-lg scale-105`
-                  : darkMode
-                  ? 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              <span className="text-2xl">{cat.icon}</span>
-              <span className="text-xs">{cat.label}</span>
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Product Count */}
-      <div className={`mb-4 text-sm font-semibold ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-        Showing {filteredProducts.length} product{filteredProducts.length !== 1 ? 's' : ''}
-      </div>
-
-      {/* Products Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-4">
-        {filteredProducts.map((product) => (
-          <div key={product.id} className={`border rounded-lg overflow-hidden transition-transform hover:scale-105 ${darkMode ? 'bg-gray-700 border-gray-600 hover:shadow-xl' : 'bg-white border-gray-200 hover:shadow-lg'}`}>
-            <div className={`h-32 flex items-center justify-center text-4xl ${product.category === 'car' ? 'bg-gradient-to-br from-blue-600 to-cyan-500' : product.category === 'phone' || product.category === 'watch' ? 'bg-gradient-to-br from-cyan-500 to-blue-600' : 'bg-gradient-to-br from-blue-400 to-purple-500'}`}>
-              {product.icon}
+    <div className="min-h-screen bg-slate-950 text-slate-100 py-8 px-4 sm:px-8">
+      <div className="max-w-7xl mx-auto space-y-8">
+        {/* 1. Storefront Header Banner */}
+        <div className="bg-gradient-to-r from-slate-900 via-slate-900/90 to-amber-950/40 border border-slate-800 rounded-3xl p-6 sm:p-10 relative overflow-hidden shadow-2xl">
+          <div className="flex flex-col sm:flex-row items-center gap-6 relative z-10">
+            <div className="w-24 h-24 rounded-2xl bg-amber-500/10 border-2 border-amber-500/30 flex items-center justify-center text-4xl shadow-inner flex-shrink-0">
+              🏪
             </div>
-            <div className="p-3">
-              <p className={`font-bold text-sm mb-1 ${darkMode ? 'text-white' : ''}`}>{product.name}</p>
-              
-              {product.category === 'car' && (
-                <div className={`text-xs mb-2 space-y-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  <p>Year: {product.year} | Fuel: {product.fuel}</p>
-                  <p className={`font-semibold ${product.condition === 'New' ? 'text-green-600' : 'text-yellow-600'}`}>{product.condition}</p>
-                </div>
-              )}
 
-              {(product.category === 'phone' || product.category === 'watch') && (
-                <div className={`text-xs mb-2 space-y-1 ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-                  <p>{product.storage || product.display} {product.color}</p>
-                  <p className="text-green-600 font-semibold">In Stock</p>
-                </div>
-              )}
-              
-              <div className="flex items-center gap-1 mb-2">
-                <span className="text-yellow-400 text-xs">★ {product.rating}</span>
-                <span className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>({product.reviews})</span>
+            <div className="space-y-2 text-center sm:text-left flex-1">
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                <h1 className="text-3xl font-black text-white">PHCL Official Store</h1>
+                <span className="bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+                  ✓ Verified Merchant
+                </span>
               </div>
-              
-              <div className={`text-xs space-y-0.5 mb-3 ${darkMode ? 'text-gray-300' : 'text-gray-600'}`}>
-                <p className="text-black font-bold">TSh {product.tzs.toLocaleString()}</p>
-                <p className="text-yellow-600 font-bold">${product.usd.toFixed(2)}</p>
-                <p className="text-purple-600 font-bold">Π{product.pi.toFixed(6)}</p>
+              <p className="text-slate-400 text-xs sm:text-sm max-w-2xl">
+                Karibu kwenye duka letu kuu! Tunatoa bidhaa bora za Magari, Simu za Mkononi, Vifaa vya Elektroniki, na Vazi kwa sarafu na njia zote za malipo.
+              </p>
+              <div className="flex flex-wrap items-center justify-center sm:justify-start gap-4 text-xs text-slate-300 pt-1">
+                <span>⭐ <strong>4.9/5.0</strong> Rating</span>
+                <span>📦 <strong>120+</strong> Bidhaa Zilizouzwa</span>
+                <span>⚡ Ufiko wa Papo hapo (Fast Delivery)</span>
               </div>
-              
-              <div className="flex gap-1.5">
-                {product.category === 'phone' || product.category === 'watch' ? (
-                  <>
-                    <button onClick={() => setSelectedPhoneProduct(product)} className="flex-1 px-2 py-1.5 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-600 hover:to-blue-700 text-white text-xs font-bold rounded transition-all">View</button>
-                    <button onClick={() => onAddToCart(product)} className="flex-1 px-2 py-1.5 bg-gradient-to-r from-emerald-400 to-green-600 hover:from-emerald-500 hover:to-green-700 text-white text-xs font-bold rounded transition-all">Buy</button>
-                  </>
-                ) : (
-                  <>
-                    <button onClick={() => onAddToCart(product)} className="flex-1 px-2 py-1.5 bg-gradient-to-r from-emerald-400 to-green-600 hover:from-emerald-500 hover:to-green-700 text-white text-xs font-bold rounded transition-all">Add</button>
-                    <button className="flex-1 px-2 py-1.5 bg-gradient-to-r from-sky-500 to-blue-600 hover:from-sky-600 hover:to-blue-700 text-white text-xs font-bold rounded transition-all">Buy</button>
-                  </>
-                )}
-              </div>
+            </div>
+
+            {/* Currency Switcher Dropdown / Bar */}
+            <div className="bg-slate-950/80 border border-slate-800 p-2 rounded-2xl flex items-center gap-1 self-center">
+              {(Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => (
+                <button
+                  key={code}
+                  onClick={() => setSelectedCurrency(code)}
+                  className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${
+                    selectedCurrency === code
+                      ? 'bg-amber-500 text-slate-950 shadow-md'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
+                  }`}
+                >
+                  {CURRENCIES[code].symbol} {code}
+                </button>
+              ))}
             </div>
           </div>
-        ))}
-      </div>
+        </div>
 
-      {/* Phone Gallery Modal */}
-      {selectedPhoneProduct && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4 overflow-y-auto">
-          <div className={`w-full max-w-4xl rounded-lg ${darkMode ? 'bg-gray-900' : 'bg-white'}`}>
-            <div className="flex justify-between items-center p-4 border-b">
-              <h3 className={`text-xl font-bold ${darkMode ? 'text-white' : ''}`}>Product Details</h3>
-              <button onClick={() => setSelectedPhoneProduct(null)} className="p-2 hover:bg-gray-200 rounded-lg transition-all">
-                <X size={24} className={darkMode ? 'text-white' : 'text-gray-800'} />
+        {/* 2. Controls Bar (Search Bar & Category Tabs) */}
+        <div className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-4 justify-between items-center">
+            {/* Search Input */}
+            <div className="w-full sm:w-96 bg-slate-900 border border-slate-800 rounded-2xl px-4 py-2.5 flex items-center gap-2 focus-within:border-amber-500 transition">
+              <span className="text-slate-500">🔍</span>
+              <input
+                type="text"
+                placeholder="Tafuta bidhaa dukani..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-transparent text-sm text-slate-100 focus:outline-none placeholder-slate-500"
+              />
+            </div>
+
+            {/* Total Results Counter */}
+            <span className="text-xs text-slate-400">
+              Inaonyesha bidhaa <strong className="text-amber-400">{filteredProducts.length}</strong> kati ya {MARKETPLACE_PRODUCTS.length}
+            </span>
+          </div>
+
+          {/* Category Filters */}
+          <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none">
+            {categories.map((cat) => (
+              <button
+                key={cat}
+                onClick={() => setSelectedCategory(cat)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition border ${
+                  selectedCategory === cat
+                    ? 'bg-amber-500 border-amber-500 text-slate-950'
+                    : 'bg-slate-900 border-slate-800 text-slate-400 hover:border-slate-700'
+                }`}
+              >
+                {cat === 'ALL' ? 'Vyote (All)' : cat}
               </button>
-            </div>
-            <div className="p-6">
-              <ProductPhoneGallery product={selectedPhoneProduct} darkMode={darkMode} onAddToCart={(product) => { onAddToCart(product); setSelectedPhoneProduct(null); }} />
-            </div>
+            ))}
           </div>
         </div>
-      )}
+
+        {/* 3. Products Catalogue Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <AnimatePresence>
+            {filteredProducts.map((product) => {
+              const priceConverted = convertCurrency(product.priceUSD, 'USD', selectedCurrency);
+
+              return (
+                <motion.div
+                  key={product.id}
+                  layout
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  className="bg-slate-900/90 border border-slate-800/90 rounded-3xl overflow-hidden hover:border-amber-500/50 transition duration-300 flex flex-col justify-between group shadow-lg"
+                >
+                  <div className="p-4 space-y-3">
+                    {/* Image Box */}
+                    <div className="relative aspect-square rounded-2xl overflow-hidden bg-slate-950 border border-slate-800">
+                      <img
+                        src={product.image || getMarketplaceProductImage(product)}
+                        alt={product.name}
+                        className="w-full h-full object-cover group-hover:scale-105 transition duration-500"
+                      />
+                      <span className="absolute top-3 left-3 bg-slate-950/80 backdrop-blur-md text-amber-400 font-extrabold text-[10px] px-3 py-1 rounded-full border border-slate-800">
+                        {product.category}
+                      </span>
+                    </div>
+
+                    {/* Content */}
+                    <div className="space-y-1">
+                      <h3 className="font-bold text-slate-100 text-base truncate group-hover:text-amber-400 transition">
+                        {product.name}
+                      </h3>
+                      <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                        {product.description}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Price & Action Footer */}
+                  <div className="p-4 bg-slate-950/60 border-t border-slate-800/80 space-y-3">
+                    <div className="flex justify-between items-baseline">
+                      <span className="text-[10px] text-slate-500 uppercase font-bold">Bei:</span>
+                      <span className="text-lg font-black text-amber-400">
+                        {formatCurrency(priceConverted, selectedCurrency)}
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        onClick={() => onAddToCart && onAddToCart(product)}
+                        className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold py-2 rounded-xl text-xs transition flex items-center justify-center gap-1"
+                        title="Ongeza kwenye Kikapu"
+                      >
+                        🛒 Cart
+                      </button>
+
+                      <button
+                        onClick={() => onNavigateToChat && onNavigateToChat(product)}
+                        className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 rounded-xl text-xs transition flex items-center justify-center gap-1 border border-slate-700"
+                        title="Anzisha Chat"
+                      >
+                        💬 Chat
+                      </button>
+
+                      <button
+                        onClick={() => onNavigateToTrading && onNavigateToTrading(product)}
+                        className="bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold py-2 rounded-xl text-xs transition flex items-center justify-center gap-1 border border-slate-700"
+                        title="Fanya Ofa ya Bei"
+                      >
+                        🤝 Offer
+                      </button>
+                    </div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </AnimatePresence>
+        </div>
+      </div>
     </div>
   );
 }

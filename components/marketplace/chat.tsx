@@ -1,166 +1,269 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
-import { Send } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MARKETPLACE_PRODUCTS, MarketplaceProduct, getMarketplaceProductImage } from '../marketplace-products';
+import { formatCurrency, convertCurrency, CurrencyCode } from './currency';
 
-interface ChatProps {
-  darkMode: boolean;
-  language?: string;
+export interface ChatMessage {
+  id: string;
+  sender: 'user' | 'seller';
+  text: string;
+  timestamp: string;
 }
 
-const phclKnowledge = {
-  en: {
-    greeting: 'Hello! I am PHCL Super AI Assistant. How can I help you today?',
-    about: 'PHCL Super is a cryptocurrency trading platform where you can trade Bitcoin, Ethereum, Pi Network, and more. We also have a marketplace for buying vehicles, construction materials, and appliances.',
-    trading: 'PHCL Super offers live cryptocurrency trading with real-time price updates. You can trade BTC, ETH, PI, USDT, and more.',
-    marketplace: 'Our marketplace has three main categories: Motor Vehicles (cars, trucks, motorcycles), Construction Materials (paint, cement, tiles), and Appliances (furniture, TVs, washing machines).',
-    wallet: 'Your wallet is live and shows real-time balances for all your cryptocurrencies. You can send, receive, and swap assets directly.',
-    payment: 'We accept payments in multiple currencies: Tanzanian Shillings (TZS), US Dollars (USD), and Pi Network cryptocurrency (PI).',
-    contact: 'Contact us at: Email: abchimikabc1@gmail.com | Phone: +255 693 863 356',
-    default: 'I can help you with questions about PHCL Super, cryptocurrency trading, our marketplace, wallet features, and more. What would you like to know?',
-  },
-  sw: {
-    greeting: 'Habari! Mimi ni Msaada wa AI wa PHCL Super. Unaweza kuniweza nini leo?',
-    about: 'PHCL Super ni jukwaa la kuuza bitcoin, Ethereum, Pi Network, na zaidi. Pia tunayo soko la kununua magari, vifaa vya kujenga, na vifaa vya nyumbani.',
-    trading: 'PHCL Super inatoa uuzaji wa cryptocurrency na updates ya bei katika hivi karibuni. Unaweza kuuza BTC, ETH, PI, USDT, na zaidi.',
-    marketplace: 'Soko letu lina vikundi vitatu: Magari (magari, lori, baiskeli), Vifaa vya Kujenga (rangi, sementi, vigae), na Vifaa vya Nyumba (sofa, TV, mashine ya kuosha).',
-    wallet: 'Pochi yako inatembea kwa moja kwa moja na inaonyesha balansi ya cryptocurrency zako. Unaweza kutuma, kupokea, na kubadilisha mali.',
-    payment: 'Tunakubali malipo kwa sarafu nyingi: Shilingi za Tanzaniya (TZS), Dola za Kiamerika (USD), na Pi Network (PI).',
-    contact: 'Wasiliana nasi: Email: abchimikabc1@gmail.com | Simu: +255 693 863 356',
-    default: 'Naweza kukusaidia na maswali kuhusu PHCL Super, uuzaji wa cryptocurrency, soko letu, vipengele vya pochi, na zaidi. Unataka kujua nini?',
-  },
-};
+export interface Conversation {
+  id: string;
+  sellerName: string;
+  sellerAvatar: string;
+  product: MarketplaceProduct;
+  lastMessage: string;
+  lastMessageTime: string;
+  unreadCount: number;
+  messages: ChatMessage[];
+}
 
-const getResponse = (message: string, language: string): string => {
-  const msg = message.toLowerCase().trim();
-  const kb = phclKnowledge[language as keyof typeof phclKnowledge];
+export default function Chat({
+  onNavigateToTrading,
+}: {
+  onNavigateToTrading?: (product: MarketplaceProduct) => void;
+}) {
+  const [selectedCurrency] = useState<CurrencyCode>('TZS');
 
-  // Greetings
-  if (msg.includes('hello') || msg.includes('hi') || msg.includes('habari') || msg.includes('jambo') || msg.includes('asalamu')) {
-    return kb.greeting;
-  }
-  
-  // About/Info
-  if (msg.includes('about') || msg.includes('what is phcl') || msg.includes('kuhusu') || msg.includes('nini') || msg.includes('je phcl')) {
-    return kb.about;
-  }
-  
-  // Trading
-  if (msg.includes('trading') || msg.includes('trade') || msg.includes('crypto') || msg.includes('bitcoin') || msg.includes('ethereum') || msg.includes('uuzaji') || msg.includes('bitcoin') || msg.includes('ethereum')) {
-    return kb.trading;
-  }
-  
-  // Marketplace/Shop
-  if (msg.includes('marketplace') || msg.includes('market') || msg.includes('shop') || msg.includes('soko') || msg.includes('buy') || msg.includes('product') || msg.includes('cars') || msg.includes('phones')) {
-    return kb.marketplace;
-  }
-  
-  // Wallet
-  if (msg.includes('wallet') || msg.includes('balance') || msg.includes('pochi') || msg.includes('balansi') || msg.includes('send') || msg.includes('receive') || msg.includes('swap')) {
-    return kb.wallet;
-  }
-  
-  // Payment/Pricing
-  if (msg.includes('payment') || msg.includes('price') || msg.includes('cost') || msg.includes('malipo') || msg.includes('bei') || msg.includes('currency') || msg.includes('usd') || msg.includes('pi network')) {
-    return kb.payment;
-  }
-  
-  // Contact
-  if (msg.includes('contact') || msg.includes('email') || msg.includes('phone') || msg.includes('simu') || msg.includes('wasiliana') || msg.includes('number')) {
-    return kb.contact;
-  }
-  
-  return kb.default;
-};
-
-export function Chat({ darkMode, language = 'en' }: ChatProps) {
-  const [messages, setMessages] = useState<Array<{ type: 'user' | 'bot'; text: string }>>([
-    { type: 'bot', text: phclKnowledge[language as keyof typeof phclKnowledge].greeting },
+  // Demo Conversations Data
+  const [conversations, setConversations] = useState<Conversation[]>([
+    {
+      id: 'conv-1',
+      sellerName: 'Autos Tanzania Ltd',
+      sellerAvatar: '🏎️',
+      product: MARKETPLACE_PRODUCTS[0], // Mercedes C200
+      lastMessage: 'Ndiyo, gari bado ipo! Unakaribishwa kufanya inspection.',
+      lastMessageTime: '10:45 AM',
+      unreadCount: 2,
+      messages: [
+        {
+          id: 'm1',
+          sender: 'user',
+          text: 'Habari, hili gari la Mercedes C200 bado lipo sokoni?',
+          timestamp: '10:40 AM',
+        },
+        {
+          id: 'm2',
+          sender: 'seller',
+          text: 'Habari! Ndiyo, gari bado ipo! Unakaribishwa kufanya inspection.',
+          timestamp: '10:45 AM',
+        },
+      ],
+    },
+    {
+      id: 'conv-2',
+      sellerName: 'iStore Mlimani City',
+      sellerAvatar: '📱',
+      product: MARKETPLACE_PRODUCTS[6], // iPhone 16 Pro Max
+      lastMessage: 'Bei ya mwisho ni kama ilivyoonyeshwa, lakini tunaweza kuzungumza kidogo.',
+      lastMessageTime: 'Juzi',
+      unreadCount: 0,
+      messages: [
+        {
+          id: 'm3',
+          sender: 'user',
+          text: 'Habari, simu hii ina warranty ya miezi mingapi?',
+          timestamp: 'Juzi 14:00',
+        },
+        {
+          id: 'm4',
+          sender: 'seller',
+          text: 'Ina warranty ya mwaka mmoja kutoka Apple Official Store.',
+          timestamp: 'Juzi 14:05',
+        },
+        {
+          id: 'm5',
+          sender: 'seller',
+          text: 'Bei ya mwisho ni kama ilivyoonyeshwa, lakini tunaweza kuzungumza kidogo.',
+          timestamp: 'Juzi 14:06',
+        },
+      ],
+    },
   ]);
-  const [inputValue, setInputValue] = useState('');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const scrollToBottom = () => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  };
+  const [activeConvId, setActiveConvId] = useState<string>(conversations[0].id);
+  const [inputText, setInputText] = useState('');
 
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
+  const activeConv = conversations.find((c) => c.id === activeConvId) || conversations[0];
 
-  // Reset greeting when language changes
-  useEffect(() => {
-    const newGreeting = phclKnowledge[language as keyof typeof phclKnowledge].greeting;
-    setMessages([{ type: 'bot', text: newGreeting }]);
-  }, [language]);
+  const handleSendMessage = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!inputText.trim()) return;
 
-  const handleSendMessage = () => {
-    if (!inputValue.trim()) return;
-    
-    const userMessage = { type: 'user' as const, text: inputValue };
-    const botResponse = { type: 'bot' as const, text: getResponse(inputValue, language) };
-    
-    setMessages(prev => [...prev, userMessage, botResponse]);
-    setInputValue('');
+    const newMessage: ChatMessage = {
+      id: `m-${Date.now()}`,
+      sender: 'user',
+      text: inputText,
+      timestamp: 'Punde Hivi',
+    };
+
+    setConversations((prev) =>
+      prev.map((conv) => {
+        if (conv.id === activeConvId) {
+          return {
+            ...conv,
+            lastMessage: inputText,
+            lastMessageTime: 'Punde Hivi',
+            messages: [...conv.messages, newMessage],
+          };
+        }
+        return conv;
+      })
+    );
+
+    setInputText('');
   };
 
   return (
-    <div className={`${darkMode ? 'bg-gray-800' : 'bg-gradient-to-br from-blue-50 to-cyan-50'} rounded-lg p-6`}>
-      <div className="flex justify-between items-center mb-4">
-        <h2 className={`text-2xl font-bold ${darkMode ? 'text-white' : ''}`}>PHCL AI Assistant</h2>
-        <div className={`px-3 py-2 rounded-lg font-semibold ${
-          darkMode
-            ? 'bg-gray-700 text-white'
-            : 'bg-white text-gray-700 border border-gray-300'
-        }`}>
-          {language === 'en' ? '🇬🇧 English' : '🇹🇿 Kiswahili'}
+    <div className="min-h-screen bg-slate-950 text-slate-100 py-6 px-4 sm:px-8">
+      <div className="max-w-6xl mx-auto space-y-6">
+        {/* Header Section */}
+        <div className="border-b border-slate-800 pb-4">
+          <span className="text-amber-500 font-bold text-xs tracking-wider uppercase">
+            Marketplace Messenger
+          </span>
+          <h1 className="text-3xl font-extrabold text-white flex items-center gap-3">
+            💬 Mazungumzo na Wauzaji
+          </h1>
         </div>
-      </div>
 
-      <div className={`h-80 overflow-y-auto mb-4 p-4 border rounded space-y-3 ${
-        darkMode ? 'bg-gray-700 border-gray-600' : 'bg-white border-gray-200'
-      }`}>
-        {messages.map((msg, i) => (
-          <div key={i} className={`flex ${msg.type === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-              msg.type === 'user'
-                ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white'
-                : darkMode
-                ? 'bg-gray-600 text-gray-100'
-                : 'bg-gray-100 text-gray-800'
-            }`}>
-              <p className="text-sm">{msg.text}</p>
+        {/* Chat Main Window Grid */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden min-h-[600px] shadow-2xl">
+          {/* Left Sidebar: Conversations List (4 Cols) */}
+          <div className="lg:col-span-4 border-r border-slate-800 p-4 space-y-3 bg-slate-950/40">
+            <h2 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider px-2">
+              Chats Zako ({conversations.length})
+            </h2>
+
+            <div className="space-y-2">
+              {conversations.map((conv) => {
+                const isActive = conv.id === activeConvId;
+                return (
+                  <div
+                    key={conv.id}
+                    onClick={() => setActiveConvId(conv.id)}
+                    className={`p-3.5 rounded-2xl cursor-pointer transition flex items-center gap-3 ${
+                      isActive
+                        ? 'bg-amber-500/10 border border-amber-500/50'
+                        : 'hover:bg-slate-800/50 border border-transparent'
+                    }`}
+                  >
+                    <div className="w-11 h-11 rounded-2xl bg-slate-800 flex items-center justify-center text-xl flex-shrink-0 border border-slate-700">
+                      {conv.sellerAvatar}
+                    </div>
+
+                    <div className="flex-1 min-w-0">
+                      <div className="flex justify-between items-center">
+                        <h3 className="font-bold text-sm text-slate-100 truncate">
+                          {conv.sellerName}
+                        </h3>
+                        <span className="text-[10px] text-slate-500">{conv.lastMessageTime}</span>
+                      </div>
+                      <p className="text-xs text-slate-400 truncate">{conv.lastMessage}</p>
+                    </div>
+
+                    {conv.unreadCount > 0 && !isActive && (
+                      <span className="w-5 h-5 rounded-full bg-amber-500 text-slate-950 text-[10px] font-bold flex items-center justify-center">
+                        {conv.unreadCount}
+                      </span>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </div>
-        ))}
-        <div ref={messagesEndRef} />
-      </div>
 
-      <div className="flex gap-2">
-        <input
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
-          placeholder={language === 'en' ? 'Ask about PHCL Super...' : 'Uliza kuhusu PHCL Super...'}
-          className={`flex-1 px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 ${
-            darkMode
-              ? 'bg-gray-700 border-gray-600 text-white'
-              : 'bg-white border-gray-300 text-gray-800'
-          }`}
-        />
-        <button
-          onClick={handleSendMessage}
-          className="px-4 py-2 bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700 text-white font-semibold shadow-lg rounded-lg transition-all flex items-center gap-2"
-        >
-          <Send size={18} />
-        </button>
-      </div>
+          {/* Right Column: Chat Box Window (8 Cols) */}
+          <div className="lg:col-span-8 flex flex-col justify-between bg-slate-900">
+            {/* 1. Chat Top Bar (Seller + Product Info) */}
+            <div className="p-4 border-b border-slate-800 bg-slate-950/80 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-xl bg-slate-800 flex items-center justify-center text-lg border border-slate-700">
+                  {activeConv.sellerAvatar}
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-100 text-sm">{activeConv.sellerName}</h3>
+                  <span className="text-[10px] text-emerald-400 font-medium">● Yupo Hewani (Online)</span>
+                </div>
+              </div>
 
-      <p className={`text-xs mt-2 text-center ${darkMode ? 'text-gray-400' : 'text-gray-600'}`}>
-        {language === 'en' 
-          ? 'Ask me anything about PHCL Super, trading, marketplace, wallet, or other topics!'
-          : 'Niulize kuhusu PHCL Super, uuzaji, soko, pochi, au mada nyingine!'}
-      </p>
+              {/* Product Reference Badge */}
+              <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 p-2 rounded-xl">
+                <img
+                  src={activeConv.product.image || getMarketplaceProductImage(activeConv.product)}
+                  alt={activeConv.product.name}
+                  className="w-10 h-10 rounded-lg object-cover bg-slate-950"
+                />
+                <div className="hidden sm:block text-left">
+                  <p className="text-xs font-bold text-slate-200 truncate max-w-[150px]">
+                    {activeConv.product.name}
+                  </p>
+                  <p className="text-xs text-amber-400 font-extrabold">
+                    {formatCurrency(
+                      convertCurrency(activeConv.product.priceUSD, 'USD', selectedCurrency),
+                      selectedCurrency
+                    )}
+                  </p>
+                </div>
+                {onNavigateToTrading && (
+                  <button
+                    onClick={() => onNavigateToTrading(activeConv.product)}
+                    className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-bold px-3 py-1.5 rounded-lg transition"
+                  >
+                    🤝 Fanya Ofa
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* 2. Messages Body */}
+            <div className="p-4 flex-1 overflow-y-auto space-y-4 max-h-[420px]">
+              {activeConv.messages.map((msg) => {
+                const isMe = msg.sender === 'user';
+                return (
+                  <div
+                    key={msg.id}
+                    className={`flex flex-col ${isMe ? 'items-end' : 'items-start'}`}
+                  >
+                    <div
+                      className={`max-w-[80%] p-3.5 rounded-2xl text-sm ${
+                        isMe
+                          ? 'bg-amber-500 text-slate-950 font-medium rounded-tr-none'
+                          : 'bg-slate-800 text-slate-200 border border-slate-700 rounded-tl-none'
+                      }`}
+                    >
+                      {msg.text}
+                    </div>
+                    <span className="text-[10px] text-slate-500 mt-1 px-1">{msg.timestamp}</span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* 3. Input Text Box */}
+            <form onSubmit={handleSendMessage} className="p-4 border-t border-slate-800 bg-slate-950/60 flex items-center gap-2">
+              <input
+                type="text"
+                placeholder={`Mwandikie ${activeConv.sellerName} ujumbe...`}
+                value={inputText}
+                onChange={(e) => setInputText(e.target.value)}
+                className="flex-1 bg-slate-900 border border-slate-800 rounded-2xl px-4 py-3 text-sm text-slate-100 focus:outline-none focus:border-amber-500 transition"
+              />
+              <button
+                type="submit"
+                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold px-5 py-3 rounded-2xl transition flex items-center gap-1 text-sm"
+              >
+                Tuma 🚀
+              </button>
+            </form>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
