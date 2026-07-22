@@ -14,7 +14,7 @@ export function ArrowGame({ darkMode }: ArrowGameProps) {
   const [gameActive, setGameActive] = useState(false);
   const [level, setLevel] = useState(1);
   const obstacleIdRef = useRef(0);
-  const gameLoopRef = useRef<NodeJS.Timeout>();
+  const gameLoopRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleStart = () => {
     setGameActive(true);
@@ -51,15 +51,6 @@ export function ArrowGame({ darkMode }: ArrowGameProps) {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [gameActive]);
-        if (e.key === 'ArrowLeft') newX = Math.max(5, prev.x - 8);
-        if (e.key === 'ArrowRight') newX = Math.min(95, prev.x + 8);
-        return { ...prev, x: newX };
-      });
-    };
-
-    window.addEventListener('keydown', handleKeyPress);
-    return () => window.removeEventListener('keydown', handleKeyPress);
-  }, [gameActive]);
 
   useEffect(() => {
     if (!gameActive) return;
@@ -91,7 +82,11 @@ export function ArrowGame({ darkMode }: ArrowGameProps) {
       });
     }, 50);
 
-    return () => clearInterval(gameLoopRef.current);
+    return () => {
+      if (gameLoopRef.current) {
+        clearInterval(gameLoopRef.current);
+      }
+    };
   }, [gameActive, playerPos, level, score]);
 
   return (
