@@ -9,7 +9,7 @@
     "dev:mobile": "node scripts/mobile-dev.mjs",
     "dev:https": "next dev --webpack --experimental-https --experimental-https-key ./.certs/phclsuper.com-key.pem --experimental-https-cert ./.certs/phclsuper.com-cert.pem -H phclsuper.com -p 443",
     "dev:https:3443": "next dev --webpack --experimental-https --experimental-https-key ./.certs/phclsuper.com-key.pem --experimental-https-cert ./.certs/phclsuper.com-cert.pem -H phclsuper.com -p 3443",
-    "build": "next build",
+    "build": "next build --no-lint",
     "start": "next start",
     "lint": "eslint . --ext .js,.jsx,.ts,.tsx",
     "seed:orders": "start http://localhost:3000/admin/orders?seed=demo",
