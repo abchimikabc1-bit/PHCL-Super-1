@@ -1,7 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Sparkles } from 'lucide-react';
-import HomeClient from '@/app/home-client';
+import HomeClient from './home-client'; // Njia thabiti na salama ya kijiografia!
 
 export const metadata: Metadata = {
   title: 'PHCL Super | Marketplace, Wallet and Community',
@@ -23,7 +23,7 @@ export const metadata: Metadata = {
 export default function Home() {
   return (
     <div className="flex flex-col items-center justify-start min-h-screen relative">
-      {/* Uhuishaji (Animation) ya kuifanya bendera ipepee kama upepo */}
+      {/* Uhuishaji (Animation) ya kuifanya bendera ipepee kama upepo kiasili */}
       <style dangerouslySetInnerHTML={{__html: `
         @keyframes wave {
           0% { transform: translateY(0) rotate(0deg) skewX(0deg); }
@@ -53,14 +53,4 @@ export default function Home() {
         <img 
           src="/flag.svg" 
           alt="PHCL Super Flag" 
-          className="w-36 h-auto md:w-52 object-contain filter drop-shadow-[0_0_15px_rgba(234,179,8,0.35)] animate-flag-wave" 
-        />
-      </div>
-
-      {/* 3. Kurasa kuu za mradi wako zinazosomwa hapa chini */}
-      <div className="w-full">
-        <HomeClient />
-      </div>
-    </div>
-  );
-}
+          className="w-36 h-auto md:w-52 object-contain filter drop-shadow-No response

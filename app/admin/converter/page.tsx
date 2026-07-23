@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useAdmin } from '@/lib/admin-context';
-import { convertAmount, formatCurrencyAmount } from '@/components/marketplace/currency-utils';
+import { convertAmount, formatCurrencyAmount } from '@/components/marketplace/currency';
 import { getAdminCurrencyConfig } from '@/lib/admin-currency-rates';
 
 type CurrencyCode = 'usd' | 'tzs' | 'ntzs' | 'pi';

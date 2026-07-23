@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import dynamic from 'next/dynamic';
-import { PI_GCV_USD, convertAmount, formatCurrencyAmount } from '@/components/marketplace/currency-utils';
+import { PI_GCV_USD, convertAmount, formatCurrencyAmount } from '@/components/marketplace/currency';
 import { useCommerceSnapshot } from '@/hooks/use-commerce-snapshot';
 import { useCommerceBootstrap } from '@/hooks/use-commerce-bootstrap';
 import { useLanguage } from '@/hooks/use-language';

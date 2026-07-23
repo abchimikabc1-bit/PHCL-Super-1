@@ -1,4 +1,72 @@
-export const products = [
+// ==========================================
+// 1. PRODUCT INTERFACES & TYPES
+// ==========================================
+export type ProductCategory =
+  | 'car'
+  | 'truck'
+  | 'trailer'
+  | 'tipper'
+  | 'tractor'
+  | 'equipment'
+  | 'crypto'
+  | 'guide'
+  | 'service'
+  | 'tool'
+  | 'course'
+  | 'phone'
+  | 'watch'
+  | 'material'
+  | 'bus'
+  | 'motorcycle'
+  | 'furniture'
+  | 'appliance'
+  | 'electronics';
+
+export interface Product {
+  id: number | string;
+  name: string;
+  category: ProductCategory | string;
+  tzs: number;
+  usd: number;
+  pi: number;
+  rating: number;
+  reviews: number;
+  icon: string;
+  image?: string;
+  condition?: string;
+  year?: number;
+  fuel?: string;
+  capacity?: string;
+  power?: string;
+  type?: string;
+  storage?: string;
+  color?: string;
+  screen?: string;
+  display?: string;
+  water?: string;
+  unit?: string;
+  grade?: string;
+  diameter?: string;
+  size?: string;
+  thickness?: string;
+  gauge?: string;
+  material?: string;
+  finish?: string;
+  features?: string;
+  engine?: string;
+  seats?: string;
+  resolution?: string;
+  grits?: string;
+  coverage?: string;
+}
+
+// Alias ya kuzuia makosa kama ukurasa unatafuta MarketplaceProduct
+export type MarketplaceProduct = Product;
+
+// ==========================================
+// 2. MAIN PRODUCTS ARRAY (95+ ITEMS)
+// ==========================================
+export const products: Product[] = [
   // CARS - SHOWROOM VEHICLES (1 Pi = $314,159)
   { id: 1, name: 'Toyota Corolla 2024', category: 'car', tzs: 52500000, usd: 19999, pi: 0.0637, rating: 4.9, reviews: 456, icon: '🚗', condition: 'New', year: 2024, fuel: 'Petrol' },
   { id: 2, name: 'Honda Civic 2024', category: 'car', tzs: 58750000, usd: 22500, pi: 0.0716, rating: 4.8, reviews: 389, icon: '🚗', condition: 'New', year: 2024, fuel: 'Petrol' },
@@ -93,14 +161,14 @@ export const products = [
   { id: 60, name: 'Roof Truss Kit (50 sq meters)', category: 'material', tzs: 1050000, usd: 400, pi: 16.16, rating: 4.9, reviews: 189, icon: '⛩️', unit: 'Kit', coverage: '50 sq meters', type: 'Roofing' },
   { id: 61, name: 'Paint Thinner (20L Can)', category: 'material', tzs: 210000, usd: 80, pi: 3.23, rating: 4.6, reviews: 156, icon: '🎨', unit: '20L', type: 'Paint Accessories' },
   { id: 62, name: 'Wood Polish Premium (5L)', category: 'material', tzs: 157500, usd: 60, pi: 2.42, rating: 4.7, reviews: 223, icon: '✨', unit: '5L', type: 'Finishing' },
-  { id: 63, name: 'Sandpaper Assorted (50 Sheets)', category: 'material', tzs: 52500, usd: 20, pi: 0.81, rating: 4.8, reviews: 401, icon: '📋', unit: '50 sheets', grits: 'Multiple', type: 'Abrasives' },
-  { id: 64, name: 'Wall Putty 20kg', category: 'material', tzs: 105000, usd: 40, pi: 1.62, rating: 4.7, reviews: 334, icon: '🎨', unit: '20kg', type: 'Surface Prep' },
-  { id: 65, name: 'Primer Paint (20L)', category: 'material', tzs: 315000, usd: 120, pi: 4.85, rating: 4.8, reviews: 267, icon: '🎨', unit: '20L', type: 'Paint Base' },
-  { id: 66, name: 'Stone Chips Cubic Meter', category: 'material', tzs: 189000, usd: 72, pi: 2.91, rating: 4.6, reviews: 278, icon: '⚙️', unit: 'Cubic Meter', type: 'Aggregate' },
-  { id: 67, name: 'Lintel Beam Steel (6 meters)', category: 'material', tzs: 210000, usd: 80, pi: 3.23, rating: 4.8, reviews: 189, icon: '🔗', unit: '6m beam', type: 'Steel Structure' },
-  { id: 68, name: 'Joint Compound 25kg', category: 'material', tzs: 157500, usd: 60, pi: 2.42, rating: 4.7, reviews: 201, icon: '🧱', unit: '25kg', type: 'Drywall Finish' },
-  { id: 69, name: 'Tiles Adhesive 25kg', category: 'material', tzs: 105000, usd: 40, pi: 1.62, rating: 4.8, reviews: 345, icon: '🧱', unit: '25kg', type: 'Tile Materials' },
-  { id: 70, name: 'Laminate Flooring (50 sq meters)', category: 'material', tzs: 525000, usd: 200, pi: 8.08, rating: 4.8, reviews: 412, icon: '🏠', unit: '50 sq meters', finish: 'Wood Look', type: 'Flooring' },
+  { id: 630, name: 'Sandpaper Assorted (50 Sheets)', category: 'material', tzs: 52500, usd: 20, pi: 0.81, rating: 4.8, reviews: 401, icon: '📋', unit: '50 sheets', grits: 'Multiple', type: 'Abrasives' },
+  { id: 640, name: 'Wall Putty 20kg', category: 'material', tzs: 105000, usd: 40, pi: 1.62, rating: 4.7, reviews: 334, icon: '🎨', unit: '20kg', type: 'Surface Prep' },
+  { id: 650, name: 'Primer Paint (20L)', category: 'material', tzs: 315000, usd: 120, pi: 4.85, rating: 4.8, reviews: 267, icon: '🎨', unit: '20L', type: 'Paint Base' },
+  { id: 660, name: 'Stone Chips Cubic Meter', category: 'material', tzs: 189000, usd: 72, pi: 2.91, rating: 4.6, reviews: 278, icon: '⚙️', unit: 'Cubic Meter', type: 'Aggregate' },
+  { id: 670, name: 'Lintel Beam Steel (6 meters)', category: 'material', tzs: 210000, usd: 80, pi: 3.23, rating: 4.8, reviews: 189, icon: '🔗', unit: '6m beam', type: 'Steel Structure' },
+  { id: 680, name: 'Joint Compound 25kg', category: 'material', tzs: 157500, usd: 60, pi: 2.42, rating: 4.7, reviews: 201, icon: '🧱', unit: '25kg', type: 'Drywall Finish' },
+  { id: 690, name: 'Tiles Adhesive 25kg', category: 'material', tzs: 105000, usd: 40, pi: 1.62, rating: 4.8, reviews: 345, icon: '🧱', unit: '25kg', type: 'Tile Materials' },
+  { id: 700, name: 'Laminate Flooring (50 sq meters)', category: 'material', tzs: 525000, usd: 200, pi: 8.08, rating: 4.8, reviews: 412, icon: '🏠', unit: '50 sq meters', finish: 'Wood Look', type: 'Flooring' },
 
   // VIP BUSES
   { id: 71, name: 'Volvo B7R VIP Coach 52 Seater', category: 'bus', tzs: 735000000, usd: 280000, pi: 11312, rating: 4.9, reviews: 145, icon: '🚌', condition: 'New', year: 2024, capacity: '52 passengers', features: 'Luxury interior' },
@@ -145,3 +213,52 @@ export const products = [
   { id: 94, name: 'Ceiling Fan Energy Efficient', category: 'appliance', tzs: 315000, usd: 120, pi: 4.85, rating: 4.6, reviews: 512, icon: '🌀', power: '60W', features: 'Remote control, 3 speeds' },
   { id: 95, name: 'Microwave Oven 30L Convection', category: 'appliance', tzs: 787500, usd: 300, pi: 12.12, rating: 4.7, reviews: 278, icon: '🍶', capacity: '30 liters', features: 'Convection, grill functions' },
 ];
+
+// ==========================================
+// 3. BACKWARD COMPATIBILITY ALIASES
+// ==========================================
+export const MARKETPLACE_PRODUCTS = products;
+export const defaultProducts = products;
+
+// ==========================================
+// 4. HELPER & FILTER FUNCTIONS
+// ==========================================
+
+/**
+ * Pata picha au Icon ya Bidhaa
+ */
+export function getMarketplaceProductImage(product: Product): string {
+  if (product?.image) return product.image;
+  return `https://via.placeholder.com/300?text=${encodeURIComponent(product?.name || 'Product')}`;
+}
+
+/**
+ * Tafuta bidhaa kwa ID
+ */
+export function getProductById(id: number | string): Product | undefined {
+  return products.find((p) => String(p.id) === String(id));
+}
+
+/**
+ * Pata bidhaa kwa kutumia Category
+ */
+export function getProductsByCategory(category: string): Product[] {
+  if (!category || category === 'all') return products;
+  return products.filter((p) => p.category.toLowerCase() === category.toLowerCase());
+}
+
+/**
+ * Tafuta bidhaa kwa kutumia neno la utafutaji (Search)
+ */
+export function searchProducts(query: string): Product[] {
+  if (!query.trim()) return products;
+  const q = query.toLowerCase();
+  return products.filter(
+    (p) =>
+      p.name.toLowerCase().includes(q) ||
+      p.category.toLowerCase().includes(q) ||
+      (p.type && p.type.toLowerCase().includes(q))
+  );
+}
+
+export default products;

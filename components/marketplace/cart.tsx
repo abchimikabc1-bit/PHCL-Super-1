@@ -8,7 +8,11 @@ import {
   convertCurrency, 
   formatCurrency 
 } from './currency';
-import { MARKETPLACE_PRODUCTS, MarketplaceProduct, getMarketplaceProductImage } from '../marketplace-products';
+import { 
+  MARKETPLACE_PRODUCTS, 
+  MarketplaceProduct, 
+  getMarketplaceProductImage 
+} from './marketplace-products';
 
 export interface CartItem {
   product: MarketplaceProduct;
@@ -20,17 +24,18 @@ export default function Cart({
 }: {
   onNavigateToCheckout?: () => void;
 }) {
-  // Demo Cart Items Initial State
-  const [cartItems, setCartItems] = useState<CartItem[]>([
-    { product: MARKETPLACE_PRODUCTS[0], quantity: 1 }, // Mercedes C200
-    { product: MARKETPLACE_PRODUCTS[6], quantity: 2 }, // iPhone 16 Pro Max
-    { product: MARKETPLACE_PRODUCTS[15], quantity: 1 }, // Samsung Z Fold6
-  ]);
+  // Demo Cart Items Initial State na Ukaguzi wa Salama (Safe Fallback)
+  const defaultItems: CartItem[] = [];
+  if (MARKETPLACE_PRODUCTS[0]) defaultItems.push({ product: MARKETPLACE_PRODUCTS[0], quantity: 1 });
+  if (MARKETPLACE_PRODUCTS[1] || MARKETPLACE_PRODUCTS[0]) {
+    defaultItems.push({ product: MARKETPLACE_PRODUCTS[1] || MARKETPLACE_PRODUCTS[0], quantity: 2 });
+  }
 
+  const [cartItems, setCartItems] = useState<CartItem[]>(defaultItems);
   const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>('USD');
 
   // Helper Functions za Idadi na Kufuta
-  const updateQuantity = (productId: number, delta: number) => {
+  const updateQuantity = (productId: string | number, delta: number) => {
     setCartItems((prevItems) =>
       prevItems
         .map((item) => {
@@ -44,7 +49,7 @@ export default function Cart({
     );
   };
 
-  const removeItem = (productId: number) => {
+  const removeItem = (productId: string | number) => {
     setCartItems((prevItems) => prevItems.filter((item) => item.product.id !== productId));
   };
 
@@ -74,7 +79,7 @@ export default function Cart({
 
           {/* Currency Switcher Bar */}
           <div className="bg-slate-900 border border-slate-800 p-1.5 rounded-2xl flex items-center gap-1 self-start sm:self-auto">
-            {(Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => (
+            {CURRENCIES && (Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => (
               <button
                 key={code}
                 onClick={() => setSelectedCurrency(code)}
@@ -84,7 +89,7 @@ export default function Cart({
                     : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
                 }`}
               >
-                {CURRENCIES[code].symbol} {code}
+                {CURRENCIES[code]?.symbol || '$'} {code}
               </button>
             ))}
           </div>
@@ -139,9 +144,11 @@ export default function Cart({
                       />
 
                       <div className="flex-1 min-w-0 space-y-1">
-                        <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">
-                          {product.category}
-                        </span>
+                        {product.category && (
+                          <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider">
+                            {product.category}
+                          </span>
+                        )}
                         <h3 className="font-bold text-slate-100 text-sm truncate">
                           {product.name}
                         </h3>
@@ -173,7 +180,7 @@ export default function Cart({
                             onClick={() => removeItem(product.id)}
                             className="text-xs text-rose-500/80 hover:text-rose-400 transition"
                           >
-                            Odoa
+                            Ondoa
                           </button>
                         </div>
                       </div>

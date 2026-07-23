@@ -6,7 +6,7 @@ import {
   MARKETPLACE_PRODUCTS, 
   MarketplaceProduct, 
   getMarketplaceProductImage 
-} from '../../data/marketplace-products';
+} from '../../lib/marketplace-products'; // Njia sahihi iliyosafishwa hapa!
 
 export default function Showroom() {
   const [selectedProduct, setSelectedProduct] = useState<MarketplaceProduct | null>(null);
@@ -191,7 +191,7 @@ function CategoryRow({
         </div>
       </div>
 
-      {/* Horizontal Slider (Kulia kwenda Kushoto) */}
+      {/* Horizontal Slider */}
       <div
         ref={scrollRef}
         className="flex gap-5 overflow-x-auto scrollbar-none scroll-smooth pb-4 snap-x snap-mandatory"

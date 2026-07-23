@@ -1,7 +1,7 @@
 import { initializeApp } from "firebase/app";
 import { getAI, getTemplateGenerativeModel, GoogleAIBackend } from "firebase/ai";
 
-// Usanidi wako thabiti wa Firebase
+// Usanidi thabiti wa mradi wako wa Firebase
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -19,6 +19,23 @@ const app = initializeApp(firebaseConfig);
 const ai = getAI(app, { backend: new GoogleAIBackend() });
 
 // 3. Kuchukua ile Template yetu ya ushindi tuliyoiunda kule kwenye Console
-// Firebase AI expects template request options, so we keep the call shape valid
-// and let the configured template define the actual prompt behavior.
-export const phclAgent = getTemplateGenerativeModel(ai, {});
+export const phclAgent = getTemplateGenerativeModel(ai, {
+  name: "you-are-the-official-phcl-super-ai-assistant-you-are-friendly-p"
+});
+
+// 4. Kazi isiyo na gharama (no-cost) ya kusoma maandishi yoyote kwa sauti
+export function speakText(text: string, lang: 'sw' | 'en' = 'en') {
+  if (typeof window !== 'undefined' && 'speechSynthesis' in window) {
+    // Zima sauti yoyote inayocheza sasa hivi kwanza kuzuia fujo
+    window.speechSynthesis.cancel();
+
+    const utterance = new SpeechSynthesisUtterance(text);
+    
+    // Kuweka lugha sahihi (Kiswahili cha Tanzania au Kiingereza)
+    utterance.lang = lang === 'sw' ? 'sw-TZ' : 'en-US';
+    utterance.rate = 1.0; // Kasi ya kawaida ya kuongea
+    utterance.pitch = 1.0; // Sauti ya asili ya kibinadamu
+
+    window.speechSynthesis.speak(utterance);
+  }
+}

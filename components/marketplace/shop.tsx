@@ -2,7 +2,7 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { MARKETPLACE_PRODUCTS, MarketplaceProduct, getMarketplaceProductImage } from '../marketplace-products';
+import { getMarketplaceProductImage, MARKETPLACE_PRODUCTS } from '@/lib/marketplace-products';
 import { 
   CURRENCIES, 
   CurrencyCode, 

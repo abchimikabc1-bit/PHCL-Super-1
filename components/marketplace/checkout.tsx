@@ -10,7 +10,7 @@ import {
   convertCurrency, 
   formatCurrency 
 } from './currency';
-import { MARKETPLACE_PRODUCTS, MarketplaceProduct, getMarketplaceProductImage } from '../marketplace-products';
+import { getMarketplaceProductImage, MARKETPLACE_PRODUCTS } from '@/lib/marketplace-products';
 
 // Mfano wa bidhaa zilizopo kwenye Cart kwa ajili ya Onyesho la Checkout
 interface CartItem {

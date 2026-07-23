@@ -1,234 +1,215 @@
 'use client';
 
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
-import { MARKETPLACE_PRODUCTS, MarketplaceProduct, getMarketplaceProductImage } from '../marketplace-products';
-import { formatCurrency, convertCurrency, CurrencyCode } from './currency';
+import { products, Product } from '@/data/products'; // Badilisha njia ya import (path) iendane na ulipoweka faili lako la products
 
-export type OrderStatus = 'PENDING' | 'PROCESSING' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
+// ==========================================
+// 1. ORDER INTERFACES & TYPES
+// ==========================================
+export type OrderStatus = 'Pending' | 'Processing' | 'Shipped' | 'Delivered' | 'Cancelled';
 
 export interface OrderItem {
-  id: string;
-  orderNumber: string;
-  product: MarketplaceProduct;
+  id: string | number;
+  product: Product;
   quantity: number;
-  totalPriceUSD: number;
-  paidCurrency: CurrencyCode;
-  paymentProvider: string;
-  orderDate: string;
-  estimatedDelivery: string;
+  selectedCurrency: 'TZS' | 'USD' | 'Pi';
+  totalPrice: number;
+}
+
+export interface Order {
+  orderId: string;
+  customerName: string;
+  customerEmail?: string;
+  items: OrderItem[];
   status: OrderStatus;
+  totalAmount: number;
+  currency: string;
+  createdAt: string;
   shippingAddress: string;
 }
 
-export default function Order() {
-  const [selectedCurrency, setSelectedCurrency] = useState<CurrencyCode>('TZS');
+// ==========================================
+// 2. MOCK DATA (ODA ZA AWALI)
+// ==========================================
+const initialOrders: Order[] = [
+  {
+    orderId: 'ORD-9081',
+    customerName: 'Juma Ally',
+    customerEmail: 'juma@example.com',
+    items: [
+      {
+        id: 1,
+        product: products[0] || { id: 1, name: 'Toyota Corolla 2024', category: 'car', tzs: 52500000, usd: 19999, pi: 0.0637, rating: 4.9, reviews: 456, icon: '🚗' },
+        quantity: 1,
+        selectedCurrency: 'USD',
+        totalPrice: 19999
+      }
+    ],
+    status: 'Processing',
+    totalAmount: 19999,
+    currency: 'USD',
+    createdAt: '2026-06-10',
+    shippingAddress: 'Dar es Salaam, Tanzania'
+  },
+  {
+    orderId: 'ORD-9082',
+    customerName: 'Baraka Mwinyi',
+    customerEmail: 'baraka@example.com',
+    items: [
+      {
+        id: 13,
+        product: products[12] || { id: 13, name: 'Bitcoin Trading Pro', category: 'crypto', tzs: 265000, usd: 99.99, pi: 0.0003183, rating: 4.8, reviews: 234, icon: '₿' },
+        quantity: 2,
+        selectedCurrency: 'TZS',
+        totalPrice: 530000
+      }
+    ],
+    status: 'Delivered',
+    totalAmount: 530000,
+    currency: 'TZS',
+    createdAt: '2026-06-08',
+    shippingAddress: 'Arusha, Tanzania'
+  }
+];
 
-  // Demo Orders Data
-  const [orders] = useState<OrderItem[]>([
-    {
-      id: 'ORD-10928',
-      orderNumber: '#PHCL-88210',
-      product: MARKETPLACE_PRODUCTS[0], // Mercedes C200
-      quantity: 1,
-      totalPriceUSD: MARKETPLACE_PRODUCTS[0].priceUSD + 150,
-      paidCurrency: 'TZS',
-      paymentProvider: 'BENK',
-      orderDate: '20 Julai, 2026',
-      estimatedDelivery: '25 Julai, 2026',
-      status: 'SHIPPED',
-      shippingAddress: 'Mikocheni B, Dar es Salaam, Tanzania',
-    },
-    {
-      id: 'ORD-10929',
-      orderNumber: '#PHCL-88211',
-      product: MARKETPLACE_PRODUCTS[6], // iPhone 16 Pro Max
-      quantity: 2,
-      totalPriceUSD: MARKETPLACE_PRODUCTS[6].priceUSD * 2 + 50,
-      paidCurrency: 'USD',
-      paymentProvider: 'VISA',
-      orderDate: '22 Julai, 2026',
-      estimatedDelivery: '24 Julai, 2026',
-      status: 'PROCESSING',
-      shippingAddress: 'Oysterbay, Haile Selassie Rd, Dar es Salaam',
-    },
-  ]);
+// ==========================================
+// 3. MAIN ORDER COMPONENT
+// ==========================================
+export default function OrderComponent() {
+  const [orders, setOrders] = useState<Order[]>(initialOrders);
+  const [filter, setFilter] = useState<string>('All');
 
-  const [selectedOrder, setSelectedOrder] = useState<OrderItem>(orders[0]);
+  // Kuchuja oda kulingana na Status
+  const filteredOrders = filter === 'All' 
+    ? orders 
+    : orders.filter((o) => o.status.toLowerCase() === filter.toLowerCase());
 
-  // Status steps mapping
-  const statusSteps: { key: OrderStatus; label: string; icon: string }[] = [
-    { key: 'PENDING', label: 'Imepokelewa', icon: '📝' },
-    { key: 'PROCESSING', label: 'Inachakatwa', icon: '⚙️' },
-    { key: 'SHIPPED', label: 'Imesafirishwa', icon: '🚚' },
-    { key: 'DELIVERED', label: 'Imewasilishwa', icon: '✅' },
-  ];
-
-  const getStepIndex = (status: OrderStatus) => {
-    switch (status) {
-      case 'PENDING': return 0;
-      case 'PROCESSING': return 1;
-      case 'SHIPPED': return 2;
-      case 'DELIVERED': return 3;
-      default: return 0;
-    }
+  // Badilisha Status ya Oda
+  const updateOrderStatus = (orderId: string, newStatus: OrderStatus) => {
+    setOrders((prevOrders) =>
+      prevOrders.map((ord) =>
+        ord.orderId === orderId ? { ...ord, status: newStatus } : ord
+      )
+    );
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 py-10 px-4 sm:px-8">
-      <div className="max-w-6xl mx-auto space-y-8">
-        {/* Header Section */}
-        <div className="border-b border-slate-800 pb-6 flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <span className="text-amber-500 font-bold text-xs tracking-wider uppercase">
-              Order Fulfillment Engine
-            </span>
-            <h1 className="text-3xl sm:text-4xl font-extrabold text-white flex items-center gap-3">
-              📦 Ufuatiliaji wa Oda Zako
-            </h1>
-          </div>
-
-          {/* Currency Selector */}
-          <div className="bg-slate-900 border border-slate-800 p-1.5 rounded-2xl flex items-center gap-1 self-start md:self-auto">
-            {(['TZS', 'USD', 'nTZS', 'PI'] as CurrencyCode[]).map((code) => (
-              <button
-                key={code}
-                onClick={() => setSelectedCurrency(code)}
-                className={`px-3.5 py-1.5 rounded-xl text-xs font-bold transition ${
-                  selectedCurrency === code
-                    ? 'bg-amber-500 text-slate-950 shadow-md'
-                    : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800'
-                }`}
-              >
-                {code}
-              </button>
-            ))}
-          </div>
+    <div className="w-full max-w-7xl mx-auto p-4 md:p-8 bg-slate-950 text-white rounded-3xl border border-slate-800 shadow-2xl">
+      {/* Kichwa cha Sehemu ya Oda */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-8 border-b border-slate-800 pb-6">
+        <div>
+          <h1 className="text-2xl md:text-3xl font-extrabold tracking-tight flex items-center gap-3">
+            <span>📦</span> Usimamizi wa Oda (Order Management)
+          </h1>
+          <p className="text-slate-400 text-sm mt-1">
+            Fuatilia, angalia, na thibitisha oda zote za wateja wa kimataifa kwa urahisi.
+          </p>
         </div>
 
-        {/* Main Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left Column: Orders List (5 Cols) */}
-          <div className="lg:col-span-5 space-y-4">
-            <h2 className="text-xs font-extrabold text-slate-400 uppercase tracking-wider px-2">
-              Orodha ya Oda ({orders.length})
-            </h2>
-
-            <div className="space-y-3">
-              {orders.map((ord) => {
-                const isSelected = ord.id === selectedOrder.id;
-                const priceInSelectedCurrency = convertCurrency(ord.totalPriceUSD, 'USD', selectedCurrency);
-
-                return (
-                  <motion.div
-                    key={ord.id}
-                    whileHover={{ scale: 1.01 }}
-                    onClick={() => setSelectedOrder(ord)}
-                    className={`p-4 rounded-3xl border cursor-pointer transition ${
-                      isSelected
-                        ? 'bg-amber-500/10 border-amber-500 shadow-xl'
-                        : 'bg-slate-900 border-slate-800/90 hover:border-slate-700'
-                    }`}
-                  >
-                    <div className="flex justify-between items-start mb-2">
-                      <span className="font-extrabold text-sm text-slate-100">{ord.orderNumber}</span>
-                      <span className="text-[10px] font-bold px-2.5 py-1 rounded-full bg-slate-950 border border-slate-800 text-amber-400">
-                        {ord.status}
-                      </span>
-                    </div>
-
-                    <div className="flex items-center gap-3 my-2">
-                      <img
-                        src={ord.product.image || getMarketplaceProductImage(ord.product)}
-                        alt={ord.product.name}
-                        className="w-12 h-12 rounded-xl object-cover bg-slate-950 border border-slate-800"
-                      />
-                      <div className="flex-1 min-w-0">
-                        <p className="font-bold text-xs text-slate-200 truncate">{ord.product.name}</p>
-                        <p className="text-[10px] text-slate-400">Tarehe: {ord.orderDate}</p>
-                      </div>
-                    </div>
-
-                    <div className="border-t border-slate-800/80 pt-2.5 flex justify-between items-center text-xs">
-                      <span className="text-slate-400">Jumla ya Malipo:</span>
-                      <span className="font-extrabold text-amber-400">
-                        {formatCurrency(priceInSelectedCurrency, selectedCurrency)}
-                      </span>
-                    </div>
-                  </motion.div>
-                );
-              })}
-            </div>
-          </div>
-
-          {/* Right Column: Order Detail & Status Tracker (7 Cols) */}
-          <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6">
-            <div className="border-b border-slate-800 pb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
-              <div>
-                <span className="text-xs text-slate-400">Taarifa za Oda</span>
-                <h2 className="text-2xl font-black text-white">{selectedOrder.orderNumber}</h2>
-              </div>
-              <span className="text-xs text-slate-400 bg-slate-950 border border-slate-800 px-3 py-1.5 rounded-xl self-start sm:self-auto font-mono">
-                ID: {selectedOrder.id}
-              </span>
-            </div>
-
-            {/* Live Progress Bar Status Tracker */}
-            <div className="space-y-3 bg-slate-950/60 p-5 rounded-2xl border border-slate-800">
-              <h3 className="text-xs font-bold text-slate-300 uppercase tracking-wider mb-4">
-                Hatua ya Usafirishaji (Live Status)
-              </h3>
-
-              <div className="grid grid-cols-4 gap-2 text-center relative">
-                {statusSteps.map((step, idx) => {
-                  const currentIdx = getStepIndex(selectedOrder.status);
-                  const isDone = idx <= currentIdx;
-
-                  return (
-                    <div key={step.key} className="flex flex-col items-center space-y-2 z-10">
-                      <div
-                        className={`w-10 h-10 rounded-2xl flex items-center justify-center text-base font-bold transition border ${
-                          isDone
-                            ? 'bg-amber-500 text-slate-950 border-amber-400 shadow-lg shadow-amber-500/20'
-                            : 'bg-slate-900 text-slate-600 border-slate-800'
-                        }`}
-                      >
-                        {step.icon}
-                      </div>
-                      <span className={`text-[10px] font-bold ${isDone ? 'text-slate-200' : 'text-slate-600'}`}>
-                        {step.label}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Order Items & Shipping Address Details */}
-            <div className="space-y-4 text-xs text-slate-300">
-              <div className="bg-slate-950/40 p-4 rounded-2xl border border-slate-800 space-y-2">
-                <p className="font-bold text-amber-400 text-sm">📍 Anwani ya Utoaji Mzigo</p>
-                <p className="text-slate-300">{selectedOrder.shippingAddress}</p>
-                <p className="text-slate-500">Muda wa Kufika (Est.): {selectedOrder.estimatedDelivery}</p>
-              </div>
-
-              <div className="bg-slate-950/40 p-4 rounded-2xl border border-slate-800 space-y-2">
-                <p className="font-bold text-amber-400 text-sm">💳 Taarifa za Malipo</p>
-                <p className="text-slate-300">Njia Iliyotumika: <strong className="text-white">{selectedOrder.paymentProvider}</strong></p>
-                <p className="text-slate-300">
-                  Kiasi Kilicholipwa:{' '}
-                  <strong className="text-amber-400 font-extrabold text-sm">
-                    {formatCurrency(
-                      convertCurrency(selectedOrder.totalPriceUSD, 'USD', selectedCurrency),
-                      selectedCurrency
-                    )}
-                  </strong>
-                </p>
-              </div>
-            </div>
-          </div>
+        {/* Vichujio vya Hali (Filters) */}
+        <div className="flex flex-wrap gap-2">
+          {['All', 'Processing', 'Shipped', 'Delivered', 'Cancelled'].map((status) => (
+            <button
+              key={status}
+              onClick={() => setFilter(status)}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition-all duration-200 ${
+                filter === status
+                  ? 'bg-blue-600 text-white shadow-lg shadow-blue-600/30'
+                  : 'bg-slate-900 text-slate-400 hover:bg-slate-800 border border-slate-800'
+              }`}
+            >
+              {status}
+            </button>
+          ))}
         </div>
       </div>
+
+      {/* Orodha ya Oda */}
+      {filteredOrders.length === 0 ? (
+        <div className="text-center py-16 bg-slate-900/50 rounded-2xl border border-slate-800/60">
+          <p className="text-slate-400 text-base">Hakuna oda zilizopatikana kwenye kundi hili.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 gap-6">
+          {filteredOrders.map((order) => (
+            <div
+              key={order.orderId}
+              className="bg-slate-900/80 border border-slate-800/80 rounded-2xl p-6 transition-all hover:border-slate-700 shadow-lg"
+            >
+              <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4 mb-4 border-b border-slate-800 pb-4">
+                <div>
+                  <div className="flex items-center gap-3">
+                    <span className="text-lg font-bold text-blue-400">{order.orderId}</span>
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium border ${
+                        order.status === 'Delivered'
+                          ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20'
+                          : order.status === 'Processing'
+                          ? 'bg-amber-500/10 text-amber-400 border-amber-500/20'
+                          : order.status === 'Shipped'
+                          ? 'bg-sky-500/10 text-sky-400 border-sky-500/20'
+                          : 'bg-rose-500/10 text-rose-400 border-rose-500/20'
+                      }`}
+                    >
+                      {order.status}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-400 mt-1">
+                    Mteja: <strong className="text-slate-200">{order.customerName}</strong> ({order.customerEmail || 'Hakuna Barua pepe'}) • Tarehe: {order.createdAt}
+                  </p>
+                </div>
+
+                <div className="text-right">
+                  <span className="text-xs text-slate-400 block">Jumla ya Malipo</span>
+                  <span className="text-xl font-bold text-emerald-400">
+                    {order.currency === 'TZS' ? 'TZS ' : order.currency === 'USD' ? '$' : 'Pi '}
+                    {order.totalAmount.toLocaleString()}
+                  </span>
+                </div>
+              </div>
+
+              {/* Vitu Viliyoagizwa (Items List) */}
+              <div className="space-y-3 mb-4">
+                <h4 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Bidhaa Kwenye Oda Hii:</h4>
+                {order.items.map((item, idx) => (
+                  <div key={idx} className="flex items-center justify-between bg-slate-950/60 p-3 rounded-xl border border-slate-800/50">
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{item.product.icon || '📦'}</span>
+                      <div>
+                        <p className="text-sm font-semibold text-slate-200">{item.product.name}</p>
+                        <p className="text-xs text-slate-400">Idadi: {item.quantity} | Kundi: {item.product.category}</p>
+                      </div>
+                    </div>
+                    <span className="text-sm font-medium text-slate-300">
+                      {item.selectedCurrency} {item.totalPrice.toLocaleString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+
+              {/* Anwani na Vifungo vya Kuchukua Hatua (Actions) */}
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 pt-4 border-t border-slate-800/60 text-xs text-slate-400">
+                <p>📍 Anwani ya Mteja: <span className="text-slate-300 font-medium">{order.shippingAddress}</span></p>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-slate-400 mr-1">Badilisha Hali:</span>
+                  {(['Processing', 'Shipped', 'Delivered', 'Cancelled'] as OrderStatus[]).map((st) => (
+                    order.status !== st && (
+                      <button
+                        key={st}
+                        onClick={() => updateOrderStatus(order.orderId, st)}
+                        className="px-2.5 py-1 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-medium transition"
+                      >
+                        {st}
+                      </button>
+                    )
+                  ))}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
