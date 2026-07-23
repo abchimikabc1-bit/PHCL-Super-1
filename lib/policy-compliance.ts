@@ -1,5 +1,5 @@
-export const TERMS_POLICY_VERSION = '2026-07';
-export const PRIVACY_POLICY_VERSION = '2026-07';
+export const TERMS_POLICY_VERSION = '2026-05'; // Aliyelinganishwa hapa na May 2026!
+export const PRIVACY_POLICY_VERSION = '2026-05'; // Aliyelinganishwa hapa na May 2026!
 
 export type PolicyKind = 'terms' | 'privacy';
 export type PolicyStatus = 'active' | 'history';
@@ -37,22 +37,22 @@ const defaultRegistry = (): PolicyRegistryEntry[] => {
   const now = new Date().toISOString();
   return [
     {
-      id: 'terms-2026-07',
+      id: 'terms-2026-05', // Imebadilishwa kulingana na May 2026
       policy: 'terms',
       version: TERMS_POLICY_VERSION,
       label: 'Terms of Service',
       status: 'active',
-      effectiveDate: '2026-07-01',
+      effectiveDate: '2026-05-01', // Imebadilishwa kulingana na May 2026
       createdAt: now,
       activatedAt: now,
     },
     {
-      id: 'privacy-2026-07',
+      id: 'privacy-2026-05', // Imebadilishwa kulingana na May 2026
       policy: 'privacy',
       version: PRIVACY_POLICY_VERSION,
       label: 'Privacy Policy',
       status: 'active',
-      effectiveDate: '2026-07-01',
+      effectiveDate: '2026-05-01', // Imebadilishwa kulingana na May 2026
       createdAt: now,
       activatedAt: now,
     },
